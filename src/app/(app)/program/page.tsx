@@ -1,14 +1,8 @@
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/ComingSoon";
+import { ProgramScreen } from "@/features/program/ProgramScreen";
 
 export const metadata: Metadata = { title: "Program" };
 
 export default function Page() {
-  return (
-    <ComingSoon
-      title="Program"
-      phase={2}
-      what="Shared weekly split editor with supersets, cardio finishers and ab work."
-    />
-  );
+  return <ProgramScreen />;
 }

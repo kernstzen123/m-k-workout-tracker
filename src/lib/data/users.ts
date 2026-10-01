@@ -65,3 +65,21 @@ export async function loadProfile(
 export function updateProfile(uid: string, profile: UserProfile): void {
   fireAndForget(setDoc(userRef(uid), userProfileSchema.parse(profile)), "updateProfile");
 }
+
+const nameCache = new Map<string, string>();
+
+/** Display name for a user id (e.g. "Last edited by …"). Cached for the app session. */
+export async function getUserName(uid: string): Promise<string | null> {
+  const cached = nameCache.get(uid);
+  if (cached) return cached;
+  try {
+    const snap = await getDoc(userRef(uid));
+    const parsed = userProfileSchema.safeParse(snap.data());
+    if (!parsed.success) return null;
+    nameCache.set(uid, parsed.data.name);
+    return parsed.data.name;
+  } catch (error) {
+    reportError(error, { where: "getUserName", uid });
+    return null;
+  }
+}
