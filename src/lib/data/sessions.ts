@@ -8,12 +8,10 @@ import {
   onSnapshot,
   orderBy,
   query,
-  increment,
   setDoc,
   updateDoc,
   where,
   writeBatch,
-  type FieldValue,
   type Query,
   type QuerySnapshot,
   type Unsubscribe,
@@ -172,8 +170,8 @@ export interface FinishWrite {
 
 /**
  * One atomic batch: the finished session, PR flags on its sets, and every denormalised doc
- * (`lastSets`, `prs`, `weeklyStats`). Weekly stats use increments, so two devices never clobber
- * each other's totals.
+ * (`lastSets`, `prs`, `weeklyStats`). Every write is idempotent, so a batch re-sent after the app
+ * was closed before the server acknowledged it can't double-count anything.
  */
 /**
  * Resolves `true` once this device's cache shows the change — i.e. the write is committed to
@@ -228,14 +226,10 @@ export function finishSession(input: FinishWrite): Promise<boolean> {
   for (const setId of prSetIds) {
     batch.update(doc(setsCol(uid, sessionId), setId), { isPR: true });
   }
-  const muscles: Record<string, { sets: FieldValue; volume: FieldValue }> = {};
-  for (const [muscle, t] of Object.entries(weekly) as Array<[Muscle, MuscleTally]>) {
-    if (!Number.isFinite(t.sets) || !Number.isFinite(t.volume)) continue;
-    muscles[muscle] = { sets: increment(t.sets), volume: increment(t.volume) };
-  }
+  // Idempotent: this session's own entry (a retried write rewrites the same key — no double count).
   batch.set(
     doc(db, "users", uid, "weeklyStats", weekId),
-    { sessions: increment(1), muscles, updatedAt: Date.now() },
+    { bySession: { [sessionId]: { muscles: weekly } }, updatedAt: Date.now() },
     { merge: true },
   );
   fireAndForget(batch.commit(), "finishSession", "Couldn't save the finished workout.");

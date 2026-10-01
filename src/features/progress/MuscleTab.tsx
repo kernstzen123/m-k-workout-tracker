@@ -8,6 +8,7 @@ import { EmptyState, Spinner } from "@/components/ui/Page";
 import { useAuthStore } from "@/features/auth/store";
 import { listWeeklyStats } from "@/lib/data/progress";
 import { isoWeekId } from "@/lib/dates";
+import { weekTotals } from "@/lib/stats/weekly";
 import { reportError } from "@/lib/monitoring";
 import { TARGET_BANDS, bandStatus, type BandStatus } from "@/lib/overload/volume";
 import { MUSCLES, MUSCLE_LABELS, type Muscle } from "@/lib/schemas/common";
@@ -46,10 +47,11 @@ export function MuscleTab() {
   if (weeks === null) return <Spinner label="Loading weekly volume" />;
   const thisWeek = isoWeekId();
   const options = [thisWeek, ...weeks.map((w) => w.id).filter((id) => id !== thisWeek)].slice(0, 6);
-  const week = weeks.find((w) => w.id === weekId);
+  const doc = weeks.find((w) => w.id === weekId);
+  const week = doc ? weekTotals(doc) : null;
   const rows = MUSCLES.filter((m) => TARGET_BANDS[m]).map((m) => ({
     muscle: m,
-    sets: Math.round((week?.muscles?.[m]?.sets ?? 0) * 10) / 10,
+    sets: Math.round((week?.muscles[m]?.sets ?? 0) * 10) / 10,
     band: TARGET_BANDS[m]!,
   }));
   const scaleMax = Math.max(24, ...rows.map((r) => r.sets));
@@ -71,8 +73,8 @@ export function MuscleTab() {
           <figcaption className="mb-3">
             <p className="eyebrow">Working sets per muscle</p>
             <p className="text-sm text-muted">
-              {week.sessions ?? 0} workout{week.sessions === 1 ? "" : "s"} · secondary muscles count
-              as ½ set · shaded band = target
+              {week.sessions} workout{week.sessions === 1 ? "" : "s"} · secondary muscles count as ½
+              set · shaded band = target
             </p>
           </figcaption>
           <ul className="flex flex-col gap-3">

@@ -22,10 +22,18 @@ export type PrDoc = z.infer<typeof prDocSchema>;
 
 const muscleStat = z.object({ sets: z.number().min(0), volume: z.number().min(0) });
 
-/** `users/{uid}/weeklyStats/{yyyy-Www}` — written with increments when a session is finished. */
+/**
+ * `users/{uid}/weeklyStats/{yyyy-Www}` — each finished session writes its own entry under
+ * `bySession.{sessionId}` (set + merge). Re-sending the same write (e.g. after the app was closed
+ * before the server acknowledged it) just rewrites the same key, so totals can never double-count.
+ * Totals are summed on read (`weekTotals`). `sessions` / `muscles` are the legacy
+ * increment-based totals, still read for older weeks.
+ */
+const muscleTallies = z.partialRecord(z.enum(MUSCLES), muscleStat);
 export const weeklyStatsDocSchema = z.object({
+  bySession: z.record(z.string(), z.object({ muscles: muscleTallies })).optional(),
   sessions: z.number().min(0).optional(),
-  muscles: z.partialRecord(z.enum(MUSCLES), muscleStat).optional(),
+  muscles: muscleTallies.optional(),
   updatedAt: millis.optional(),
 });
 export type WeeklyStatsDoc = z.infer<typeof weeklyStatsDocSchema>;
