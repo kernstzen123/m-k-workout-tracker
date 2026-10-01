@@ -2,6 +2,7 @@
 node_modules/
 # next
 .next/
+.next-e2e/
 out/
 next-env.d.ts
 *.tsbuildinfo

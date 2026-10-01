@@ -5,6 +5,8 @@ import pkg from "./package.json" with { type: "json" };
 const commit = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7);
 
 const nextConfig: NextConfig = {
+  // E2E runs its own dev server in a separate dir so it can run alongside `npm run dev`.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   reactStrictMode: true,
   poweredByHeader: false,
   env: {

@@ -23,6 +23,7 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
     env: {
+      NEXT_DIST_DIR: ".next-e2e",
       NEXT_PUBLIC_USE_EMULATORS: "true",
       NEXT_PUBLIC_FIREBASE_API_KEY: "demo-api-key",
       NEXT_PUBLIC_FIREBASE_PROJECT_ID: "demo-mk-workout",
