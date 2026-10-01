@@ -1,7 +1,6 @@
 import { doc, onSnapshot, runTransaction, setDoc, type Unsubscribe } from "firebase/firestore";
 import { getDb } from "@/lib/firebase/client";
 import { errorCode } from "@/lib/monitoring";
-import { DEFAULT_PROGRAM_DAYS, DEFAULT_PROGRAM_NAME } from "@/lib/program/template";
 import {
   PROGRAM_ID,
   programDocSchema,
@@ -32,6 +31,8 @@ export function subscribeProgram(
 
 /** Create the default program once. A transaction makes the "both users at once" race safe. */
 export async function seedProgram(uid: string): Promise<void> {
+  // Loaded on demand (only needed the first time).
+  const { DEFAULT_PROGRAM_DAYS, DEFAULT_PROGRAM_NAME } = await import("@/lib/program/template");
   const data: ProgramDoc = programDocSchema.parse({
     name: DEFAULT_PROGRAM_NAME,
     days: DEFAULT_PROGRAM_DAYS,

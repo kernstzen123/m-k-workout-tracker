@@ -22,6 +22,7 @@ const APP_ROUTES = [
   "/body",
   "/compare",
   "/settings",
+  "/data",
   "/~offline",
 ];
 
@@ -29,6 +30,10 @@ export const { dynamic, dynamicParams, revalidate, generateStaticParams, GET } =
   {
     additionalPrecacheEntries: APP_ROUTES.map((url) => ({ url, revision })),
     swSrc: "src/sw.ts",
+    // Source maps are for debugging only — never download them to phones.
+    manifestTransforms: [
+      (entries) => ({ manifest: entries.filter((e) => !e.url.endsWith(".map")), warnings: [] }),
+    ],
     useNativeEsbuild: true,
   },
 );

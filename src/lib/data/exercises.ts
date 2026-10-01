@@ -15,7 +15,6 @@ import {
   type ExerciseDoc,
   type ExerciseInput,
 } from "@/lib/schemas/exercise";
-import { SEED_EXERCISES } from "@/seed/exercises";
 import { fireAndForget, parseDoc, uniqueSlug } from "./util";
 
 const exercisesCol = () => collection(getDb(), "exercises");
@@ -81,6 +80,8 @@ export function setExerciseArchived(id: string, archived: boolean): void {
  * deterministic slugs, so if both users seed at the same moment the writes are identical.
  */
 export async function seedExercises(): Promise<number> {
+  // Loaded on demand: the seed list is only needed once, so it stays out of the app bundle.
+  const { SEED_EXERCISES } = await import("@/seed/exercises");
   const db = getDb();
   const batch = writeBatch(db);
   const now = Date.now();
