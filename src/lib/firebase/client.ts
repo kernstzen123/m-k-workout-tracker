@@ -2,6 +2,7 @@ import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
 import { connectAuthEmulator, getAuth, type Auth } from "firebase/auth";
 import {
   connectFirestoreEmulator,
+  getFirestore,
   initializeFirestore,
   memoryLocalCache,
   persistentLocalCache,
@@ -23,9 +24,11 @@ const config = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app: FirebaseApp | undefined;
-let auth: Auth | undefined;
-let db: Firestore | undefined;
+/**
+ * Instances live on globalThis, not in module variables: if this module is evaluated again
+ * (dev Fast Refresh, duplicated chunk), we must reuse the already-initialised SDK instances.
+ */
+const g = globalThis as typeof globalThis & { __mkAuth?: Auth; __mkDb?: Firestore };
 
 function assertBrowser(): void {
   if (typeof window === "undefined") {
@@ -42,18 +45,18 @@ export function getFirebaseApp(): FirebaseApp {
   if (!isFirebaseConfigured()) {
     throw new Error("Firebase is not configured. Copy .env.example to .env.local and fill it in.");
   }
-  app ??= getApps().length ? getApp() : initializeApp(config);
-  return app;
+  return getApps().length ? getApp() : initializeApp(config);
 }
 
 export function getFirebaseAuth(): Auth {
-  if (!auth) {
-    auth = getAuth(getFirebaseApp());
-    if (useEmulators) {
+  if (!g.__mkAuth) {
+    const auth = getAuth(getFirebaseApp());
+    if (useEmulators && !auth.emulatorConfig) {
       connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
     }
+    g.__mkAuth = auth;
   }
-  return auth;
+  return g.__mkAuth;
 }
 
 /**
@@ -61,20 +64,29 @@ export function getFirebaseAuth(): Auth {
  * logged offline and syncs later. Falls back to a memory cache where IndexedDB is unavailable.
  */
 export function getDb(): Firestore {
-  if (db) return db;
+  if (g.__mkDb) return g.__mkDb;
   const firebaseApp = getFirebaseApp();
+  let db: Firestore;
+  let fresh = true;
   try {
     db = initializeFirestore(firebaseApp, {
       ignoreUndefinedProperties: true,
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
     });
   } catch (error) {
-    reportError(error, { where: "initializeFirestore(persistent)" });
-    db = initializeFirestore(firebaseApp, {
-      ignoreUndefinedProperties: true,
-      localCache: memoryLocalCache(),
-    });
+    if (String(error).includes("already been called")) {
+      // Already initialised by an earlier evaluation of this module — reuse it.
+      db = getFirestore(firebaseApp);
+      fresh = false;
+    } else {
+      reportError(error, { where: "initializeFirestore(persistent)" });
+      db = initializeFirestore(firebaseApp, {
+        ignoreUndefinedProperties: true,
+        localCache: memoryLocalCache(),
+      });
+    }
   }
-  if (useEmulators) connectFirestoreEmulator(db, "127.0.0.1", 8080);
+  if (useEmulators && fresh) connectFirestoreEmulator(db, "127.0.0.1", 8080);
+  g.__mkDb = db;
   return db;
 }
