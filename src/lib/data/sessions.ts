@@ -175,7 +175,46 @@ export interface FinishWrite {
  * (`lastSets`, `prs`, `weeklyStats`). Weekly stats use increments, so two devices never clobber
  * each other's totals.
  */
-export function finishSession(input: FinishWrite): void {
+/**
+ * Resolves `true` once this device's cache shows the change — i.e. the write is committed to
+ * IndexedDB (the SDK only raises snapshots after its local write transaction completes). Works
+ * offline. Resolves `false` after `timeoutMs` as a safety net.
+ *
+ * Why: writes are queued asynchronously; leaving the page (reload, app close) before the queue
+ * runs would lose them — e.g. a just-finished workout coming back as "in progress".
+ */
+function whenLocal(
+  uid: string,
+  sessionId: string,
+  isApplied: (data: Record<string, unknown> | undefined) => boolean,
+  timeoutMs: number,
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    let settled = false;
+    let unsubscribe: (() => void) | null = null;
+    const settle = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      unsubscribe?.();
+      resolve(ok);
+    };
+    const timer = setTimeout(() => settle(false), timeoutMs);
+    unsubscribe = onSnapshot(
+      sessionRef(uid, sessionId),
+      { includeMetadataChanges: true },
+      (snap) => {
+        if (isApplied(snap.exists() ? snap.data() : undefined)) settle(true);
+      },
+      () => settle(false),
+    );
+    if (settled) unsubscribe();
+  });
+}
+
+export const LOCAL_WRITE_TIMEOUT_MS = 4000;
+
+export function finishSession(input: FinishWrite): Promise<boolean> {
   const { uid, sessionId, session, lastSets, prs, prSetIds, weekId, weekly } = input;
   const db = getDb();
   const batch = writeBatch(db);
@@ -200,18 +239,20 @@ export function finishSession(input: FinishWrite): void {
     { merge: true },
   );
   fireAndForget(batch.commit(), "finishSession", "Couldn't save the finished workout.");
+  return whenLocal(uid, sessionId, (d) => d?.status === "done", LOCAL_WRITE_TIMEOUT_MS);
 }
 
-/** Delete an unfinished workout with its sets and attached cardio. */
+/** Delete an unfinished workout; resolves once the deletion is durable locally. */
 export function discardSession(
   uid: string,
   sessionId: string,
   setIds: string[],
   cardioIds: string[],
-): void {
+): Promise<boolean> {
   const batch = writeBatch(getDb());
   for (const id of setIds) batch.delete(doc(setsCol(uid, sessionId), id));
   for (const id of cardioIds) batch.delete(cardioRef(uid, id));
   batch.delete(sessionRef(uid, sessionId));
   fireAndForget(batch.commit(), "discardSession");
+  return whenLocal(uid, sessionId, (d) => d === undefined, LOCAL_WRITE_TIMEOUT_MS);
 }

@@ -79,8 +79,13 @@ interface WorkoutState {
   logCardio: (input: { type: string; durationMin: number }) => void;
   undoCardio: (entryId: string) => void;
 
-  finish: (notes: string, exerciseInfo: FinishInput["exerciseInfo"]) => FinishPayload | null;
-  discard: () => void;
+  /** Returns the payload plus `saved`, which resolves once the finish is durable on this device. */
+  finish: (
+    notes: string,
+    exerciseInfo: FinishInput["exerciseInfo"],
+  ) => { payload: FinishPayload; saved: Promise<boolean> } | null;
+  /** Resolves once the deletion is durable on this device. */
+  discard: () => Promise<boolean>;
 }
 
 let unsubscribers: Array<() => void> = [];
@@ -329,30 +334,30 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => {
         notes,
         now: Date.now(),
       });
-      finishSession({ uid, sessionId, ...payload });
+      const saved = finishSession({ uid, sessionId, ...payload });
       detach();
       // The finished sets are now "last time" (and the new records) for the next workout.
       set((s) => ({
-        ...EMPTY,
-        status: "none",
-        dismissed: {},
         lastSets: { ...s.lastSets, ...payload.lastSets },
         prs: { ...s.prs, ...payload.prs },
       }));
-      return payload;
+      // Keep the workout on screen until the finish is durable on this device, then clear it.
+      void saved.then(() => set({ ...EMPTY, status: "none", dismissed: {} }));
+      return { payload, saved };
     },
 
     discard: () => {
       const { uid, sessionId, sets, cardio } = get();
-      if (!uid || !sessionId) return;
-      discardSession(
+      if (!uid || !sessionId) return Promise.resolve(true);
+      const done = discardSession(
         uid,
         sessionId,
         sets.map((s) => s.id),
         cardio.map((c) => c.id),
       );
       detach();
-      set({ ...EMPTY, status: "none", dismissed: {} });
+      void done.then(() => set({ ...EMPTY, status: "none", dismissed: {} }));
+      return done;
     },
   };
 });

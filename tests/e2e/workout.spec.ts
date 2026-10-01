@@ -58,6 +58,10 @@ test.describe("live workout logging", () => {
     await finish.getByRole("button", { name: "Save workout" }).click();
     await expect(page).toHaveURL("/");
 
+    // Durability: an immediate hard reload must not bring the finished workout back as a draft.
+    await page.reload();
+    await expect(page.getByText("Workout in progress")).toHaveCount(0);
+
     // Rotation: Lower A is suggested next.
     await expect(page.getByRole("button", { name: "Start Lower A" })).toBeVisible();
 

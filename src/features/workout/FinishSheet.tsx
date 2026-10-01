@@ -35,10 +35,11 @@ export function FinishSheet({
   cardio: CardioEntry[];
   exerciseInfo: FinishInput["exerciseInfo"];
   onClose: () => void;
-  onFinish: (notes: string) => void;
-  onDiscard: () => void;
+  onFinish: (notes: string) => void | Promise<void>;
+  onDiscard: () => void | Promise<void>;
 }) {
   const [notes, setNotes] = useState(session.notes);
+  const [saving, setSaving] = useState(false);
   // Snapshot "now" when the sheet opens so the numbers don't jitter while typing notes.
   const [openedAt] = useState(() => Date.now());
   const durationSec = Math.max(0, Math.round((openedAt - session.startedAt) / 1000));
@@ -72,12 +73,28 @@ export function FinishSheet({
       title="Finish workout"
       footer={
         empty ? (
-          <Button variant="danger" block onClick={onDiscard}>
-            Discard empty workout
+          <Button
+            variant="danger"
+            block
+            disabled={saving}
+            onClick={() => {
+              setSaving(true);
+              void onDiscard();
+            }}
+          >
+            {saving ? "Discarding…" : "Discard empty workout"}
           </Button>
         ) : (
-          <Button size="lg" block onClick={() => onFinish(notes)}>
-            Save workout
+          <Button
+            size="lg"
+            block
+            disabled={saving}
+            onClick={() => {
+              setSaving(true);
+              void onFinish(notes);
+            }}
+          >
+            {saving ? "Saving…" : "Save workout"}
           </Button>
         )
       }

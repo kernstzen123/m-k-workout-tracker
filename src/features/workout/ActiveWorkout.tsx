@@ -13,6 +13,7 @@ import { useRestTimerStore } from "@/features/rest-timer/store";
 import type { Exercise } from "@/lib/schemas/exercise";
 import type { Session, SessionExercise } from "@/lib/schemas/session";
 import { formatClock } from "@/lib/timer";
+import { reportError } from "@/lib/monitoring";
 import { toast } from "@/lib/toast";
 import { setsForSlot } from "@/lib/workout/session";
 import { CardioSlotCard } from "./CardioSlotCard";
@@ -195,9 +196,10 @@ export function ActiveWorkout({ session }: { session: Session }) {
         onConfirm={() => {
           setConfirmDiscard(false);
           clearTimer();
-          discard();
-          toast.info("Workout discarded.");
-          router.push("/");
+          void discard().then(() => {
+            toast.info("Workout discarded.");
+            router.push("/");
+          });
         }}
       >
         All sets logged in this workout will be deleted. This can&apos;t be undone.
@@ -211,22 +213,27 @@ export function ActiveWorkout({ session }: { session: Session }) {
           cardio={cardio}
           exerciseInfo={exerciseInfo}
           onClose={() => setFinishing(false)}
-          onDiscard={() => {
-            setFinishing(false);
+          onDiscard={async () => {
             clearTimer();
-            discard();
+            await discard();
+            setFinishing(false);
             router.push("/");
           }}
-          onFinish={(notes) => {
-            setFinishing(false);
+          onFinish={async (notes) => {
             clearTimer();
             const result = finish(notes, exerciseInfo);
-            const prs = result?.prHits.length ?? 0;
+            if (!result) return;
+            // Navigate only once the finish is committed on this device (milliseconds; works offline).
+            const durable = await result.saved;
+            if (!durable)
+              reportError(new Error("Finish not confirmed locally in time"), { where: "finish" });
+            const prs = result.payload.prHits.length;
             toast.success(
               prs > 0
                 ? `Workout saved — ${prs} new PR${prs === 1 ? "" : "s"}!`
                 : "Workout saved. Nice work!",
             );
+            setFinishing(false);
             router.push("/");
           }}
         />

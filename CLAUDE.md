@@ -45,6 +45,10 @@ dark by default, kg only. This file is the working summary of the spec — keep 
   Types are inferred from schemas (`z.infer`), never hand-duplicated.
 - **Never `await` a Firestore write in a UI flow.** Write promises only resolve on server ack, so offline
   they hang. The local cache updates synchronously. Fire the write, `.catch(reportError)`, and move on.
+- **But wait for local durability before leaving a screen after a critical write** (finish/discard a
+  workout): writes are queued asynchronously, so an instant reload/app close can drop them. `finishSession` /
+  `discardSession` return a promise that resolves when a local snapshot reflects the change (the SDK commits to
+  IndexedDB before raising snapshots) — milliseconds, works offline. Navigate after it.
 - **Listeners whose logic depends on server confirmation** (e.g. "is it really empty?") must pass
   `{ includeMetadataChanges: true }` — a server confirming an unchanged cached result emits no event otherwise.
 - **Emulators always use project `demo-mk-workout`**; test UIDs are `alice`/`bob` (allowlisted) and
