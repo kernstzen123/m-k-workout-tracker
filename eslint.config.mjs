@@ -10,6 +10,7 @@ export default defineConfig([
   globalIgnores([
     ".next/**",
     ".next-e2e/**",
+    ".next-e2e-prod/**",
     "out/**",
     "coverage/**",
     "playwright-report/**",

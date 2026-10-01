@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
-import { USERS, expectHome, signIn } from "./fixtures";
+import { USERS, expectHome, signIn, contexts } from "./fixtures";
+
+const extra = contexts();
+test.afterEach(() => extra.closeAll());
 
 async function openProgram(page: Page) {
   await page.goto("/program");
@@ -19,8 +22,8 @@ test.describe("shared program", () => {
   test("an edit by one partner applies to both, and conflicts prompt before overwriting", async ({
     browser,
   }) => {
-    const alice = await (await browser.newContext()).newPage();
-    const bob = await (await browser.newContext()).newPage();
+    const alice = await extra.page(browser);
+    const bob = await extra.page(browser);
     await signIn(alice, USERS.alice.email);
     await expectHome(alice, "alice");
     await signIn(bob, USERS.bob.email);
