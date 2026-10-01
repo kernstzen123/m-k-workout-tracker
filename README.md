@@ -74,7 +74,13 @@ npm install
 npm run dev            # http://localhost:3000
 ```
 
-On the first sign-in, the shared exercise library (~165 exercises) is seeded automatically.
+On the first sign-in, the shared exercise library (~165 exercises) and the default program
+(Upper / Lower / Upper / Lower / Full Body) are seeded automatically. Both of you can edit the program
+under **More → Program**.
+
+**Rest-timer alerts:** the timer always chimes and vibrates in the app. To also get a notification while
+the app is in the background, enable it in **Settings → Rest timer** (Android: works in the browser or
+installed; iPhone: only once the app is added to the Home Screen).
 
 To develop without touching your real project, use the emulators:
 

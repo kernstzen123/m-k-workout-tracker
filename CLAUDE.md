@@ -49,6 +49,11 @@ dark by default, kg only. This file is the working summary of the spec — keep 
   `{ includeMetadataChanges: true }` — a server confirming an unchanged cached result emits no event otherwise.
 - **Emulators always use project `demo-mk-workout`**; test UIDs are `alice`/`bob` (allowlisted) and
   `mallory` (not). E2E creates them with fixed UIDs in `tests/e2e/global-setup.ts`.
+- **Firebase SDK instances live on `globalThis`** (`src/lib/firebase/client.ts`) so a re-evaluated
+  module (dev Fast Refresh) reuses them instead of calling `initializeFirestore` twice.
+- **Rest timer** state is `{startedAt, endsAt}` persisted in localStorage; the display and the alert are
+  always recomputed from `endsAt` (`src/lib/timer.ts`). Supersets only rest after the group's last exercise.
+- **Drag-and-drop** (`components/ui/SortableList`) always has a non-drag alternative (move up/down).
 - **No silent failures.** Every caught error goes to `reportError()` (`src/lib/monitoring`) and the
   user gets a toast where it matters.
 - **Timestamps are epoch milliseconds (number)**, from the client. Calendar days are local `YYYY-MM-DD`
@@ -101,21 +106,29 @@ exercises/{exerciseId}            name, muscle, secondary[], equipment, type(str
                                   repMin, repMax, restSec, incrementKg, archived, createdAt, updatedAt
                                   (id = slug of the name for seeded exercises)
 program/{programId}               name, days[{dayId, name, items[{exerciseId, sets, repMin, repMax,
-                                  supersetGroup?}]}], version, updatedBy, updatedAt   (id: "main")
-users/{uid}/sessions/{id}         date, dayId, programVersion, startedAt, finishedAt?, durationSec,
-                                  totalVolume, notes, status(draft|done)
+                                  supersetGroup?, durationMin? (cardio)}]}], version, updatedBy,
+                                  updatedAt   (id: "main")
+users/{uid}/sessions/{id}         date, dayId, dayName, programVersion, exercises[] (slot snapshot:
+                                  key, exerciseId, targetSets, repMin, repMax, restSec?, supersetGroup?,
+                                  durationMin?), startedAt, finishedAt?, durationSec, totalVolume, notes,
+                                  status(draft|done)
 users/{uid}/sessions/{id}/sets/{setId}
-                                  exerciseId, order, type(warmup|working|drop|failure), weightKg, reps,
-                                  rpe, restSec, note, isPR
+                                  exerciseId, slotKey, order (within slot), type(warmup|working|drop|
+                                  failure), weightKg, reps, rpe, restSec (actual rest taken), note, isPR,
+                                  completedAt
 users/{uid}/cardio/{id}           date, type, durationMin, distanceKm, avgHr, intensity, sessionId?
 users/{uid}/measurements/{id}     date, weightKg, bodyFatPct, tape{chest,waist,hips,arms,thighs,calves,neck}
 users/{uid}/prs/{exerciseId}      bestWeight, bestReps, bestE1RM, bestVolume, dates
-users/{uid}/lastSets/{exerciseId} (added) last session's sets for pre-fill + last ~6 session summaries
-                                  (top set, e1RM, volume) for stall detection
+users/{uid}/lastSets/{exerciseId} (added) sessionId, date, sets[] (last session, for pre-fill),
+                                  history[≤6] {sessionId, date, topWeightKg, topReps, e1rm, volume}
 users/{uid}/weeklyStats/{yyyy-Www}(added) working sets + volume per muscle group for that ISO week
 ```
 
-- Sessions snapshot `programVersion`; editing the program never changes history.
+- Sessions snapshot `programVersion` **and** the day's exercise slots; editing the program never
+  changes history. Each completed set is its own doc, written the moment it's ticked (offline-safe).
+- A workout in progress is a `status: "draft"` session; on app start `findDraftSession` resumes it.
+- Default program (seeded once, transaction-guarded): Upper A / Lower A / Upper B / Lower B / Full Body,
+  abs on lower days, low-intensity cardio finisher on upper + lower days (`src/lib/program/template.ts`).
 - On **finish**, one batched write updates the session, `prs`, `lastSets`, and `weeklyStats`.
 - Program saves use a version check: if the stored `version` moved since editing began, warn the
   user (last-write-wins after confirmation). Rules require `version` to increase by exactly 1.
@@ -129,7 +142,7 @@ users/{uid}/weeklyStats/{yyyy-Www}(added) working sets + volume per muscle group
 ## Phase status
 
 1. Foundation — done (rules suite 12 tests, unit tests, 5 Playwright smoke tests)
-2. Core (program editor, live logging, rest timer, drafts, pre-fill) — todo
+2. Core (program editor, live logging, rest timer, drafts, pre-fill) — done (50 unit, 12 rules, 9 E2E)
 3. Overload engine — todo
 4. Tracking (cardio, body, charts, history) — todo
 5. Extras (Compare, CSV import/export) — todo
