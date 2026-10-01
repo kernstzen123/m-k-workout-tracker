@@ -1,14 +1,8 @@
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/ComingSoon";
+import { ProgressScreen } from "@/features/progress/ProgressScreen";
 
 export const metadata: Metadata = { title: "Progress" };
 
 export default function Page() {
-  return (
-    <ComingSoon
-      title="Progress"
-      phase={4}
-      what="Per-exercise charts, e1RM, volume and consistency stats."
-    />
-  );
+  return <ProgressScreen />;
 }

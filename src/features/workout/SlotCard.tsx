@@ -9,7 +9,7 @@ import { useExercisesStore } from "@/features/exercises/store";
 import { primeAudio } from "@/features/rest-timer/alerts";
 import { useRestTimerStore } from "@/features/rest-timer/store";
 import { DEFAULT_REST_SEC } from "@/lib/data/users";
-import { cn } from "@/lib/cn";
+import { EMPTY, cn } from "@/lib/cn";
 import { format } from "date-fns";
 import type { SetType } from "@/lib/schemas/common";
 import type { SessionExercise, SetSnapshot, WorkoutSet } from "@/lib/schemas/session";
@@ -53,7 +53,7 @@ export function SlotCard({
 }) {
   const exercise = useExercisesStore((s) => s.byId.get(slot.exerciseId));
   const defaultRest = useAuthStore((s) => s.profile?.defaultRestSec ?? DEFAULT_REST_SEC);
-  const slots = useWorkoutStore((s) => s.session?.exercises ?? []);
+  const slots = useWorkoutStore((s) => s.session?.exercises ?? EMPTY);
   const allSets = useWorkoutStore((s) => s.sets);
   const last = useWorkoutStore((s) => s.lastSets[slot.exerciseId]);
   const dismissed = useWorkoutStore((s) => s.dismissed[slot.key]);

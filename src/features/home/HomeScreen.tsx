@@ -12,6 +12,7 @@ import { InstallCard } from "@/features/pwa/InstallCard";
 import { dayPreview } from "@/features/workout/StartWorkout";
 import { useWorkoutStore } from "@/features/workout/store";
 import { useNextDay } from "@/features/workout/useNextDay";
+import { useRecentSessions } from "@/features/history/useRecentSessions";
 
 function greeting(hour: number): string {
   if (hour < 12) return "Good morning";
@@ -31,21 +32,28 @@ export function HomeScreen() {
       <div className="flex flex-col gap-4">
         <InstallCard />
         <TodayCard />
-        <div className="grid grid-cols-2 gap-3">
-          {/* Streak and weekly stats arrive with History in Phase 4. */}
-          <Stat
-            label="Streak"
-            value="—"
-            icon={<Flame aria-hidden className="size-6 text-warning" />}
-          />
-          <Stat
-            label="This week"
-            value="—"
-            icon={<CalendarCheck aria-hidden className="size-6 text-accent" />}
-          />
-        </div>
+        <QuickStats />
       </div>
     </>
+  );
+}
+
+function QuickStats() {
+  const { stats, loading } = useRecentSessions();
+  const v = (n: number) => (loading ? "—" : String(n));
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <Stat
+        label="Week streak"
+        value={v(stats.streakWeeks)}
+        icon={<Flame aria-hidden className="size-6 text-warning" />}
+      />
+      <Stat
+        label="This week"
+        value={v(stats.thisWeek)}
+        icon={<CalendarCheck aria-hidden className="size-6 text-accent" />}
+      />
+    </div>
   );
 }
 

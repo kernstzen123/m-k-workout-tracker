@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/ComingSoon";
+import { CardioScreen } from "@/features/cardio/CardioScreen";
 
 export const metadata: Metadata = { title: "Cardio" };
 
 export default function Page() {
-  return <ComingSoon title="Cardio" phase={4} what="Cardio log with weekly totals." />;
+  return <CardioScreen />;
 }
