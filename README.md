@@ -15,9 +15,9 @@ Everything runs client-side, so there are no Cloud Functions and nothing to pay 
 | Phase         | Scope                                                                          | State |
 | ------------- | ------------------------------------------------------------------------------ | ----- |
 | 1. Foundation | Tooling, auth + allowlist, security rules + tests, PWA shell, exercise library | ✅    |
-| 2. Core       | Program editor, live logging, rest timer, drafts, pre-fill                     | ⏳    |
-| 3. Overload   | Suggestions, e1RM, PRs, stall detection, muscle volume                         | ⏳    |
-| 4. Tracking   | Cardio, measurements, charts, history                                          | ⏳    |
+| 2. Core       | Program editor, live logging, rest timer, drafts, pre-fill                     | ✅    |
+| 3. Overload   | Suggestions, e1RM, PRs, stall detection, muscle volume                         | ✅    |
+| 4. Tracking   | Cardio, measurements, charts, history                                          | ✅    |
 | 5. Extras     | Compare, CSV import/export                                                     | ⏳    |
 | 6. Hardening  | Offline E2E, performance, Sentry, Lighthouse, deployment guide                 | ⏳    |
 
