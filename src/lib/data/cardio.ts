@@ -4,6 +4,7 @@ import {
   doc,
   limit,
   onSnapshot,
+  orderBy,
   query,
   setDoc,
   where,
@@ -38,6 +39,27 @@ export function subscribeSessionCardio(
       const list: CardioEntry[] = [];
       for (const d of snap.docs) {
         const parsed = parseDoc(cardioDocSchema, d.id, d.data(), "subscribeSessionCardio");
+        if (parsed) list.push(parsed);
+      }
+      onData(list);
+    },
+    onError,
+  );
+}
+
+/** Recent cardio (newest first), bounded — feeds the list and the weekly-totals chart. */
+export function subscribeRecentCardio(
+  uid: string,
+  max: number,
+  onData: (entries: CardioEntry[]) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  return onSnapshot(
+    query(cardioCol(uid), orderBy("date", "desc"), limit(max)),
+    (snap) => {
+      const list: CardioEntry[] = [];
+      for (const d of snap.docs) {
+        const parsed = parseDoc(cardioDocSchema, d.id, d.data(), "subscribeRecentCardio");
         if (parsed) list.push(parsed);
       }
       onData(list);
