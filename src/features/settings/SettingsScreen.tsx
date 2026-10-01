@@ -5,7 +5,7 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { Chip } from "@/components/ui/Chip";
 import { TextField } from "@/components/ui/Field";
-import { Card, PageHeader } from "@/components/ui/Page";
+import { Card, CardTitle, PageHeader } from "@/components/ui/Page";
 import { Switch } from "@/components/ui/Switch";
 import { useAuthStore } from "@/features/auth/store";
 import { InstallCard } from "@/features/pwa/InstallCard";
@@ -54,7 +54,7 @@ export function SettingsScreen() {
       <PageHeader title="Settings" />
       <div className="flex flex-col gap-4">
         <Card>
-          <h2 className="mb-3 text-lg font-semibold">Profile</h2>
+          <CardTitle>Profile</CardTitle>
           <form onSubmit={onSaveProfile} className="flex flex-col gap-4" noValidate>
             <TextField
               label="Display name"
@@ -78,7 +78,7 @@ export function SettingsScreen() {
         </Card>
 
         <Card>
-          <h2 className="mb-1 text-lg font-semibold">Privacy</h2>
+          <CardTitle className="mb-1">Privacy</CardTitle>
           <Switch
             label="Share my lifts in Compare"
             description="Lets your partner see your PRs side by side with theirs."
@@ -88,7 +88,7 @@ export function SettingsScreen() {
         </Card>
 
         <Card>
-          <h2 className="mb-3 text-lg font-semibold">Appearance</h2>
+          <CardTitle>Appearance</CardTitle>
           <div className="flex gap-2" role="group" aria-label="Theme">
             {THEMES.map((t) => (
               <Chip
@@ -107,7 +107,7 @@ export function SettingsScreen() {
         <InstallCard />
 
         <Card className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Account</h2>
+          <CardTitle className="mb-0">Account</CardTitle>
           <p className="text-sm break-all text-muted">Signed in as {user?.email ?? "—"}</p>
           <Button
             variant="secondary"

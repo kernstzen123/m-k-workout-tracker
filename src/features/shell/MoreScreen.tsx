@@ -39,11 +39,13 @@ export function MoreScreen() {
           <li key={href}>
             <Link
               href={href}
-              className="flex min-h-16 items-center gap-4 rounded-2xl border border-border bg-surface px-4 hover:bg-surface-2"
+              className="flex min-h-18 items-center gap-4 rounded-2xl border border-border bg-surface px-4 transition-colors hover:bg-surface-2 active:bg-surface-3"
             >
-              <Icon aria-hidden className="size-6 text-accent" />
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
+                <Icon aria-hidden className="size-6" />
+              </span>
               <span className="flex-1">
-                <span className="block font-semibold">{label}</span>
+                <span className="block text-[1.0625rem] font-semibold">{label}</span>
                 <span className="block text-sm text-muted">{description}</span>
               </span>
               <ChevronRight aria-hidden className="size-5 text-muted" />

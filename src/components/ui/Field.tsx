@@ -2,8 +2,8 @@ import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttribu
 import { cn } from "@/lib/cn";
 
 const control =
-  "min-h-12 w-full rounded-xl border border-border bg-surface-2 px-3 text-base text-fg " +
-  "placeholder:text-muted aria-invalid:border-danger";
+  "min-h-12 w-full rounded-xl border border-border-strong bg-surface-2 px-3.5 text-base text-fg " +
+  "transition-colors placeholder:text-muted focus-visible:border-accent aria-invalid:border-danger";
 
 interface FieldShellProps {
   id: string;
@@ -17,7 +17,7 @@ interface FieldShellProps {
 function FieldShell({ id, label, error, hint, children, className }: FieldShellProps) {
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <label htmlFor={id} className="text-sm font-medium text-muted">
+      <label htmlFor={id} className="text-sm font-semibold text-muted">
         {label}
       </label>
       {children}

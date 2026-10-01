@@ -1,3 +1,4 @@
+import { Check } from "lucide-react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
@@ -12,14 +13,15 @@ export function Chip({ selected, className, children, type = "button", ...rest }
       type={type}
       aria-pressed={selected}
       className={cn(
-        "inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition",
+        "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-colors",
         selected
           ? "border-accent bg-accent text-accent-fg"
-          : "border-border bg-surface-2 text-fg hover:bg-surface-3",
+          : "border-border-strong bg-surface text-fg hover:bg-surface-2 active:bg-surface-3",
         className,
       )}
       {...rest}
     >
+      {selected ? <Check aria-hidden className="-ml-1 size-4" strokeWidth={2.5} /> : null}
       {children}
     </button>
   );
@@ -30,7 +32,7 @@ export function Badge({ className, children }: { className?: string; children: R
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md bg-surface-3 px-2 py-0.5 text-xs font-medium text-muted",
+        "inline-flex items-center rounded-md bg-accent-soft px-2 py-0.5 text-xs font-semibold tracking-wide text-accent uppercase",
         className,
       )}
     >

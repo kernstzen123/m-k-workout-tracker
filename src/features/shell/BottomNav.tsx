@@ -27,7 +27,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md"
     >
       <ul className="mx-auto grid max-w-lg grid-cols-5">
         {TABS.map(({ href, label, icon: Icon, match }) => {
@@ -38,11 +38,19 @@ export function BottomNav() {
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-16 flex-col items-center justify-center gap-1 text-xs font-medium",
+                  "group flex min-h-16 flex-col items-center justify-center gap-1 text-xs font-semibold tracking-wide transition-colors",
                   active ? "text-accent" : "text-muted hover:text-fg",
                 )}
               >
-                <Icon aria-hidden className="size-6" strokeWidth={active ? 2.5 : 2} />
+                {/* Active state = colour + filled pill (never colour alone). */}
+                <span
+                  className={cn(
+                    "flex h-8 w-14 items-center justify-center rounded-full transition-colors",
+                    active ? "bg-accent-soft" : "group-active:bg-surface-2",
+                  )}
+                >
+                  <Icon aria-hidden className="size-6" strokeWidth={2} />
+                </span>
                 {label}
               </Link>
             </li>

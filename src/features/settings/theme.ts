@@ -27,7 +27,7 @@ export function applyThemePref(pref: ThemePref): void {
   window.dispatchEvent(new Event(THEME_EVENT));
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", resolved === "light" ? "#f5f6f8" : "#0b0d10");
+    ?.setAttribute("content", resolved === "light" ? "#f5efe3" : "#0a1612");
 }
 
 const THEME_EVENT = "mk-theme-change";

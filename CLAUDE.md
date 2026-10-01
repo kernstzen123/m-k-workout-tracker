@@ -33,7 +33,7 @@ dark by default, kg only. This file is the working summary of the spec — keep 
 | `npm run emulators`                                                 | Start Auth + Firestore emulators (UI on :4000).                                         |
 | `npm run rules:build`                                               | Generate `firestore.rules` from the template using `ALLOWED_UIDS`.                      |
 | `npm run deploy:rules`                                              | Generate rules with real UIDs, then deploy rules + indexes.                             |
-| `npm run icons`                                                     | Regenerate PWA icons from `scripts/icon.svg`.                                           |
+| `npm run icons`                                                     | Regenerate favicon + PWA/Apple icons from `assets/brand/logo-source.webp`.              |
 
 ## Conventions
 
@@ -62,6 +62,23 @@ dark by default, kg only. This file is the working summary of the spec — keep 
 - Formatting: Prettier (with the Tailwind plugin). Strict TS with `noUncheckedIndexedAccess`.
 - Small commits with clear messages. Update this file and the README as things change.
 - Ask before adding heavy or paid dependencies, or deviating from the spec.
+
+## Design system (brand)
+
+Derived from the logo (`assets/brand/logo-source.webp`) with the ui-ux-pro-max skill. Tokens live in
+`src/app/globals.css` — **never hard-code hex values in components**; use the Tailwind token classes.
+
+- **Palette:** forest `#0A1612` (bg), cream `#EEE1CB` (text), sage (actions/accent). Dark is default;
+  light = "cream paper" (`#F5EFE3` bg, forest text, deep sage `#2E6650` actions). Contrast is checked
+  in both themes (text ≥ 4.5:1; `border-strong` for form controls ≥ 3:1).
+- **Type:** Barlow (body, 16px base) + Barlow Condensed (`font-display`: titles, big numbers), self-hosted
+  via `next/font`. Page titles are condensed uppercase; section labels use the `.eyebrow` utility
+  (letter-spaced caps, echoing "GYM TRACKER"). Numbers use `.tabular`.
+- **Interaction:** ≥ 48px targets; pressed state = colour change only (no transforms → no layout shift);
+  150ms transitions; reduced motion respected. Selected state never relies on colour alone (chips show
+  a check, nav shows a pill).
+- **Icons:** lucide-react only, stroke 2, `aria-hidden` when beside text. App icons/favicon are generated
+  from the logo by `npm run icons` (don't edit the PNGs by hand).
 
 ## Access & security
 

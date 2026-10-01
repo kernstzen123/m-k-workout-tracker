@@ -8,7 +8,7 @@ export default function GlobalError({ error, reset }: { error: Error; reset: () 
 
   return (
     <html lang="en">
-      <body style={{ background: "#0b0d10", color: "#f2f4f7", fontFamily: "system-ui" }}>
+      <body style={{ background: "#0a1612", color: "#eee1cb", fontFamily: "system-ui" }}>
         <main style={{ padding: 24, textAlign: "center" }}>
           <h1>Something went wrong</h1>
           <p>Your logged data is stored on this device. Reload to continue.</p>

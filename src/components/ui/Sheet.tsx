@@ -42,7 +42,7 @@ export function Sheet({ open, onClose, title, children, footer }: SheetProps) {
     >
       <div className="flex max-h-[92dvh] flex-col">
         <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
-          <h2 className="text-lg font-semibold">{title}</h2>
+          <h2 className="font-display text-xl font-semibold tracking-wide uppercase">{title}</h2>
           <IconButton label="Close" onClick={onClose}>
             <X aria-hidden />
           </IconButton>

@@ -18,14 +18,14 @@ export function Switch({ checked, onChange, label, description }: SwitchProps) {
       className="flex min-h-14 w-full items-center gap-4 text-left"
     >
       <span className="flex-1">
-        <span className="block font-medium">{label}</span>
+        <span className="block font-semibold">{label}</span>
         {description ? <span className="block text-sm text-muted">{description}</span> : null}
       </span>
       <span
         aria-hidden
         className={cn(
-          "relative h-8 w-14 shrink-0 rounded-full border transition",
-          checked ? "border-accent bg-accent" : "border-border bg-surface-3",
+          "relative h-8 w-14 shrink-0 rounded-full border transition-colors",
+          checked ? "border-accent bg-accent" : "border-border-strong bg-surface-3",
         )}
       >
         <span

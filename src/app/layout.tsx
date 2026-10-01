@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Barlow, Barlow_Condensed } from "next/font/google";
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/Toaster";
 import { AuthBoot } from "@/features/auth/AuthBoot";
@@ -7,6 +8,20 @@ import { themeInitScript } from "@/features/settings/themeScript";
 import "./globals.css";
 
 const APP_NAME = "M&K Workout";
+
+// Self-hosted at build time by next/font — no runtime request to Google, works offline.
+const barlow = Barlow({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-barlow",
+  display: "swap",
+});
+const barlowCondensed = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-barlow-condensed",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
@@ -18,7 +33,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0d10",
+  themeColor: "#0a1612",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -26,7 +41,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" data-theme="dark" suppressHydrationWarning>
+    <html
+      lang="en"
+      data-theme="dark"
+      className={`${barlow.variable} ${barlowCondensed.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>

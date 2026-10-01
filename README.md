@@ -97,7 +97,7 @@ The service worker only runs in production builds (`npm run build && npm start`)
 | `npm run test:rules`                    | Security rules tests in the Firestore emulator (JDK 21+)      |
 | `npm run test:e2e`                      | Playwright smoke tests against the Auth + Firestore emulators |
 | `npm run deploy:rules`                  | Generate rules with real UIDs, then deploy rules + indexes    |
-| `npm run icons`                         | Regenerate PWA icons from `scripts/icon.svg`                  |
+| `npm run icons`                         | Regenerate favicon + PWA/Apple icons from the brand logo      |
 
 CI (`.github/workflows/ci.yml`) runs lint, format check, typecheck, unit tests, build, the rules
 suite and the E2E smoke tests on every push and PR.

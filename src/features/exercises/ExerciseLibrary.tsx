@@ -39,9 +39,7 @@ export function ExerciseLibrary() {
             <Plus aria-hidden />
           </IconButton>
         }
-      />
-
-      <div className="sticky top-14 z-10 -mx-4 flex flex-col gap-3 bg-bg/90 px-4 pb-3 backdrop-blur">
+      >
         <label className="relative block">
           <span className="sr-only">Search exercises</span>
           <Search
@@ -53,7 +51,7 @@ export function ExerciseLibrary() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search exercises"
-            className="min-h-12 w-full rounded-xl border border-border bg-surface-2 pr-3 pl-10 text-base placeholder:text-muted"
+            className="min-h-12 w-full rounded-xl border border-border-strong bg-surface-2 pr-3 pl-10 text-base transition-colors placeholder:text-muted focus-visible:border-accent"
           />
         </label>
         <div
@@ -78,7 +76,7 @@ export function ExerciseLibrary() {
             Show archived
           </Chip>
         </div>
-      </div>
+      </PageHeader>
 
       {status === "loading" && exercises.length === 0 ? (
         <Spinner label="Loading exercises" />
@@ -93,18 +91,17 @@ export function ExerciseLibrary() {
               <button
                 type="button"
                 onClick={() => openForm(e)}
-                className="flex min-h-16 w-full items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-2 text-left hover:bg-surface-2"
+                className="flex min-h-16 w-full items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-2.5 text-left transition-colors hover:bg-surface-2 active:bg-surface-3"
               >
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
-                    <span className="truncate font-semibold">{e.name}</span>
+                    <span className="truncate text-[1.0625rem] font-semibold">{e.name}</span>
                     {e.archived ? <Badge>Archived</Badge> : null}
                   </span>
                   <span className="block truncate text-sm text-muted">
                     {MUSCLE_LABELS[e.muscle]} · {EQUIPMENT_LABELS[e.equipment]}
-                    {e.type === "strength"
-                      ? ` · ${e.repMin}–${e.repMax} reps · +${e.incrementKg} kg`
-                      : ""}
+                    {e.type === "strength" ? ` · ${e.repMin}–${e.repMax} reps` : ""}
+                    {e.type === "strength" && e.incrementKg > 0 ? ` · +${e.incrementKg} kg` : ""}
                   </span>
                 </span>
                 <ChevronRight aria-hidden className="size-5 shrink-0 text-muted" />

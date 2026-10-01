@@ -1,10 +1,11 @@
 "use client";
 
-import { Dumbbell } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/Field";
+import { HeartDivider } from "@/components/ui/Page";
 import { authErrorMessage, resetPassword, signIn } from "@/lib/data/auth";
 import { errorCode, reportError } from "@/lib/monitoring";
 import { toast } from "@/lib/toast";
@@ -46,21 +47,27 @@ export function LoginForm() {
     }
     try {
       await resetPassword(email);
-      toast.success("If that account exists, a reset email is on its way.");
     } catch (err) {
       reportError(err, { where: "resetPassword" });
-      toast.success("If that account exists, a reset email is on its way.");
     }
+    // Same message either way, so the form never reveals which emails exist.
+    toast.success("If that account exists, a reset email is on its way.");
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-8 p-6">
-      <div className="flex flex-col items-center gap-3 text-center">
-        <span className="flex size-16 items-center justify-center rounded-2xl bg-accent text-accent-fg">
-          <Dumbbell aria-hidden className="size-9" />
-        </span>
-        <h1 className="text-3xl font-bold tracking-tight">M&amp;K Workout</h1>
-        <p className="text-muted">Sign in to log your training.</p>
+    <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center gap-8 px-6 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <Image
+          src="/brand/logo.webp"
+          alt="M&K Gym Tracker logo"
+          width={168}
+          height={168}
+          priority
+          unoptimized
+          className="drop-shadow-xl"
+        />
+        <h1 className="sr-only">M&amp;K Workout</h1>
+        <p className="eyebrow">Sign in to train together</p>
       </div>
 
       <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
@@ -94,9 +101,12 @@ export function LoginForm() {
         </Button>
       </form>
 
-      <p className="text-center text-sm text-muted">
-        Private app — accounts are created by the owners. There is no sign-up.
-      </p>
+      <div className="flex flex-col items-center gap-3">
+        <HeartDivider />
+        <p className="text-center text-sm text-muted">
+          Private app for the two of us. Accounts are created by the owners; there is no sign-up.
+        </p>
+      </div>
     </main>
   );
 }
