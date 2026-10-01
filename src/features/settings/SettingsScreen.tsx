@@ -9,6 +9,7 @@ import { Card, CardTitle, PageHeader } from "@/components/ui/Page";
 import { Switch } from "@/components/ui/Switch";
 import { useAuthStore } from "@/features/auth/store";
 import { InstallCard } from "@/features/pwa/InstallCard";
+import { RestAlertsCard } from "@/features/rest-timer/RestAlertsCard";
 import { reportError } from "@/lib/monitoring";
 import { userProfileSchema } from "@/lib/schemas/user";
 import { toast } from "@/lib/toast";
@@ -103,6 +104,8 @@ export function SettingsScreen() {
             ))}
           </div>
         </Card>
+
+        <RestAlertsCard />
 
         <InstallCard />
 
