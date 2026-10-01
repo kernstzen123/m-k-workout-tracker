@@ -45,6 +45,8 @@ dark by default, kg only. This file is the working summary of the spec — keep 
   Types are inferred from schemas (`z.infer`), never hand-duplicated.
 - **Never `await` a Firestore write in a UI flow.** Write promises only resolve on server ack, so offline
   they hang. The local cache updates synchronously. Fire the write, `.catch(reportError)`, and move on.
+- **Never use `increment()` for aggregates.** A batch re-sent after the app closed before the server
+  acknowledged it is applied twice. Write per-session entries (idempotent) and sum on read.
 - **But wait for local durability before leaving a screen after a critical write** (finish/discard a
   workout): writes are queued asynchronously, so an instant reload/app close can drop them. `finishSession` /
   `discardSession` return a promise that resolves when a local snapshot reflects the change (the SDK commits to
@@ -142,8 +144,9 @@ users/{uid}/prs/{exerciseId}      bestWeight, bestReps (at bestWeight), bestE1RM
 users/{uid}/lastSets/{exerciseId} (added) sessionId, date, sets[] (last session, for pre-fill),
                                   history[≤400] {sessionId, date, topWeightKg, topReps, e1rm, volume}
                                   (oldest first; feeds stall detection AND progress charts — 1 read)
-users/{uid}/weeklyStats/{yyyy-Www}(added) sessions, muscles{muscle→{sets, volume}} — written with
-                                  increment() on finish (secondary muscles at half credit)
+users/{uid}/weeklyStats/{yyyy-Www}(added) bySession{sessionId→{muscles{muscle→{sets, volume}}}} — one
+                                  entry per finished session (set+merge, idempotent; summed on read by
+                                  `weekTotals`). Legacy `sessions`/`muscles` increment totals still read.
 ```
 
 - Sessions snapshot `programVersion` **and** the day's exercise slots; editing the program never
