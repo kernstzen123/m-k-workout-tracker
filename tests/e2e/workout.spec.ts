@@ -70,13 +70,25 @@ test.describe("live workout logging", () => {
     await expect(bench(page).getByLabel("Set 1 weight in kg")).toHaveValue("60");
     await expect(bench(page).getByLabel("Set 1 reps")).toHaveValue("8");
 
-    // Clean up: discard this second workout.
-    await page.getByRole("button", { name: "Discard workout" }).click();
-    await page
-      .getByRole("dialog", { name: "Discard workout?" })
-      .getByRole("button", { name: "Discard" })
-      .click();
+    // Overload suggestion: both sets hit the top of 6–8 → add the 2.5 kg increment.
+    const chips = bench(page).getByRole("list", { name: "Suggestions" });
+    await expect(chips).toContainText("Go up: 62.5 kg × 6");
+    await chips.getByRole("button", { name: "Apply" }).click();
+    await expect(bench(page).getByLabel("Set 1 weight in kg")).toHaveValue("62.5");
+    await expect(bench(page).getByLabel("Set 1 reps")).toHaveValue("6");
+    await expect(chips).toHaveCount(0); // applied suggestions disappear
+
+    // Log the heavier set and finish: the PR is shown on the finish screen.
+    await logSet(page, 1);
+    await page.getByRole("button", { name: "Skip rest" }).click();
+    await page.getByRole("button", { name: "Finish" }).click();
+    const finish2 = page.getByRole("dialog", { name: "Finish workout" });
+    await expect(finish2.getByRole("region", { name: /personal record/ })).toContainText(
+      "Heaviest weight: 62.5 kg (was 60 kg)",
+    );
+    await finish2.getByRole("button", { name: "Save workout" }).click();
     await expect(page).toHaveURL("/");
+    await expect(page.getByText(/new PR/)).toBeVisible();
   });
 
   test("add, swap and reorder exercises mid-session; log the cardio finisher", async ({ page }) => {

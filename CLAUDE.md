@@ -53,6 +53,11 @@ dark by default, kg only. This file is the working summary of the spec — keep 
   module (dev Fast Refresh) reuses them instead of calling `initializeFirestore` twice.
 - **Rest timer** state is `{startedAt, endsAt}` persisted in localStorage; the display and the alert are
   always recomputed from `endsAt` (`src/lib/timer.ts`). Supersets only rest after the group's last exercise.
+- **Overload engine** (`src/lib/overload`, all pure + tested): `suggest` (top of range on all working
+  sets at RPE ≤ 8 → +increment; in range → +1 rep on weakest set; below → repeat; stall over 3 sessions →
+  deload −10% / variation), `detectPrs` (weight, reps-at-weight, e1RM, session volume; first session is a
+  baseline, not a PR), `tallyMuscles` + `TARGET_BANDS` (weekly sets per muscle). Suggestions render as
+  dismissible chips; "Apply" only fills un-logged rows.
 - **Drag-and-drop** (`components/ui/SortableList`) always has a non-drag alternative (move up/down).
 - **No silent failures.** Every caught error goes to `reportError()` (`src/lib/monitoring`) and the
   user gets a toast where it matters.
@@ -110,18 +115,21 @@ program/{programId}               name, days[{dayId, name, items[{exerciseId, se
                                   updatedAt   (id: "main")
 users/{uid}/sessions/{id}         date, dayId, dayName, programVersion, exercises[] (slot snapshot:
                                   key, exerciseId, targetSets, repMin, repMax, restSec?, supersetGroup?,
-                                  durationMin?), startedAt, finishedAt?, durationSec, totalVolume, notes,
-                                  status(draft|done)
+                                  durationMin?), startedAt, finishedAt?, durationSec, totalVolume, setCount,
+                                  avgRestSec, prCount, notes, status(draft|done)
 users/{uid}/sessions/{id}/sets/{setId}
                                   exerciseId, slotKey, order (within slot), type(warmup|working|drop|
                                   failure), weightKg, reps, rpe, restSec (actual rest taken), note, isPR,
                                   completedAt
 users/{uid}/cardio/{id}           date, type, durationMin, distanceKm, avgHr, intensity, sessionId?
 users/{uid}/measurements/{id}     date, weightKg, bodyFatPct, tape{chest,waist,hips,arms,thighs,calves,neck}
-users/{uid}/prs/{exerciseId}      bestWeight, bestReps, bestE1RM, bestVolume, dates
+users/{uid}/prs/{exerciseId}      bestWeight, bestReps (at bestWeight), bestE1RM, bestVolume,
+                                  repsAtWeight{kg→reps} (heaviest 40), dates{weight,reps,e1rm,volume}
 users/{uid}/lastSets/{exerciseId} (added) sessionId, date, sets[] (last session, for pre-fill),
-                                  history[≤6] {sessionId, date, topWeightKg, topReps, e1rm, volume}
-users/{uid}/weeklyStats/{yyyy-Www}(added) working sets + volume per muscle group for that ISO week
+                                  history[≤400] {sessionId, date, topWeightKg, topReps, e1rm, volume}
+                                  (oldest first; feeds stall detection AND progress charts — 1 read)
+users/{uid}/weeklyStats/{yyyy-Www}(added) sessions, muscles{muscle→{sets, volume}} — written with
+                                  increment() on finish (secondary muscles at half credit)
 ```
 
 - Sessions snapshot `programVersion` **and** the day's exercise slots; editing the program never
@@ -143,7 +151,7 @@ users/{uid}/weeklyStats/{yyyy-Www}(added) working sets + volume per muscle group
 
 1. Foundation — done (rules suite 12 tests, unit tests, 5 Playwright smoke tests)
 2. Core (program editor, live logging, rest timer, drafts, pre-fill) — done (50 unit, 12 rules, 9 E2E)
-3. Overload engine — todo
+3. Overload engine — done (suggestions, PRs on finish, stall detection, weekly muscle volume)
 4. Tracking (cardio, body, charts, history) — todo
 5. Extras (Compare, CSV import/export) — todo
 6. Hardening (offline E2E, perf, Sentry, Lighthouse, README deploy guide) — todo
