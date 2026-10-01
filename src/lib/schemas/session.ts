@@ -1,0 +1,46 @@
+import { z } from "zod";
+import { SET_TYPES, dayString, kg, millis } from "./common";
+
+/** Exercise slot in a session — a snapshot of the program day (or added ad hoc). */
+export const sessionExerciseSchema = z.object({
+  key: z.string().min(1).max(40), // stable slot id within the session (survives swaps/reorders)
+  exerciseId: z.string().min(1).max(100),
+  targetSets: z.int().min(0).max(20),
+  repMin: z.int().min(0).max(100),
+  repMax: z.int().min(0).max(100),
+  restSec: z.int().min(0).max(900).optional(),
+  supersetGroup: z.string().max(4).optional(),
+});
+export type SessionExercise = z.infer<typeof sessionExerciseSchema>;
+
+export const sessionDocSchema = z.object({
+  date: dayString,
+  dayId: z.string().max(40).nullable(),
+  dayName: z.string().max(80).optional(),
+  programVersion: z.int().nullable(),
+  exercises: z.array(sessionExerciseSchema).max(40).optional(),
+  startedAt: millis,
+  finishedAt: millis.nullable().optional(),
+  durationSec: z.int().min(0).max(86_400),
+  totalVolume: z.number().min(0).max(10_000_000),
+  notes: z.string().max(2000),
+  status: z.enum(["draft", "done"]),
+  updatedAt: millis.optional(),
+});
+export type SessionDoc = z.infer<typeof sessionDocSchema>;
+export type Session = SessionDoc & { id: string };
+
+export const setDocSchema = z.object({
+  exerciseId: z.string().min(1).max(100),
+  order: z.int().min(0).max(10_000),
+  type: z.enum(SET_TYPES),
+  weightKg: kg,
+  reps: z.int().min(0).max(1000),
+  rpe: z.number().min(1).max(10).nullable().optional(),
+  restSec: z.number().min(0).max(86_400).nullable().optional(),
+  note: z.string().max(500).nullable().optional(),
+  isPR: z.boolean().optional(),
+  completedAt: millis.nullable().optional(),
+});
+export type SetDoc = z.infer<typeof setDocSchema>;
+export type WorkoutSet = SetDoc & { id: string };
