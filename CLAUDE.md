@@ -20,7 +20,9 @@ dark by default, kg only. This file is the working summary of the spec — keep 
 - PWA: Serwist (Workbox successor) in Turbopack mode — `src/sw.ts`, served by
   `src/app/serwist/[path]/route.ts`.
 - Hosting: Vercel Hobby. Monitoring: Sentry free tier (enabled only when `NEXT_PUBLIC_SENTRY_DSN` is set).
-- Tests: Vitest (unit), `@firebase/rules-unit-testing` + Firestore emulator (rules), Playwright (E2E).
+- Tests: Vitest (unit), `@firebase/rules-unit-testing` + Firestore emulator (rules), Playwright (E2E:
+  `core` + `extras` on a dev server, `offline` on a production build with the service worker).
+  Emulators need JDK 21+ on PATH. Device checklist: `docs/TESTING.md`.
 
 ## Commands
 
@@ -29,7 +31,7 @@ dark by default, kg only. This file is the working summary of the spec — keep 
 | `npm run dev`                                                       | Dev server (http://localhost:3000). Service worker is only active in production builds. |
 | `npm run lint` / `npm run typecheck` / `npm test` / `npm run build` | The CI gate — all must pass.                                                            |
 | `npm run test:rules`                                                | Builds test rules and runs the rules suite in the Firestore emulator (needs JDK 21+).   |
-| `npm run test:e2e`                                                  | Playwright smoke tests against Auth + Firestore emulators.                              |
+| `npm run test:e2e`                                                  | Playwright E2E (core, extras, offline) against Auth + Firestore emulators.              |
 | `npm run emulators`                                                 | Start Auth + Firestore emulators (UI on :4000).                                         |
 | `npm run rules:build`                                               | Generate `firestore.rules` from the template using `ALLOWED_UIDS`.                      |
 | `npm run deploy:rules`                                              | Generate rules with real UIDs, then deploy rules + indexes.                             |
@@ -55,8 +57,14 @@ dark by default, kg only. This file is the working summary of the spec — keep 
   `{ includeMetadataChanges: true }` — a server confirming an unchanged cached result emits no event otherwise.
 - **Emulators always use project `demo-mk-workout`**; test UIDs are `alice`/`bob` (allowlisted) and
   `mallory` (not). E2E creates them with fixed UIDs in `tests/e2e/global-setup.ts`.
-- **Firebase SDK instances live on `globalThis`** (`src/lib/firebase/client.ts`) so a re-evaluated
-  module (dev Fast Refresh) reuses them instead of calling `initializeFirestore` twice.
+- **Firebase SDK instances live on `globalThis`** so a re-evaluated module (dev Fast Refresh) reuses them
+  instead of calling `initializeFirestore` twice.
+- **Firebase modules are split to keep bundles small:** `lib/firebase/app` (config, `getFirebaseApp`,
+  `isFirebaseConfigured`), `lib/firebase/auth` (`getFirebaseAuth`), `lib/firebase/client` (`getDb`, Firestore).
+  Code on the login path (auth store, `lib/data/auth`) must not import Firestore statically — the auth store
+  lazy-loads `lib/data/users` after sign-in. Seed data is also `import()`ed on demand.
+- **Monitoring:** `@sentry/browser` is lazy-loaded at idle only when `NEXT_PUBLIC_SENTRY_DSN` is set; errors
+  reported before it loads are queued. `beforeSend` strips user/cookies/headers.
 - **Rest timer** state is `{startedAt, endsAt}` persisted in localStorage; the display and the alert are
   always recomputed from `endsAt` (`src/lib/timer.ts`). Supersets only rest after the group's last exercise.
 - **Overload engine** (`src/lib/overload`, all pure + tested): `suggest` (top of range on all working
@@ -170,8 +178,9 @@ users/{uid}/weeklyStats/{yyyy-Www}(added) bySession{sessionId→{muscles{muscle�
 2. Core (program editor, live logging, rest timer, drafts, pre-fill) — done (50 unit, 12 rules, 9 E2E)
 3. Overload engine — done (suggestions, PRs on finish, stall detection, weekly muscle volume)
 4. Tracking (cardio, body, charts, history) — done (history + detail, progress charts, muscle bands, consistency, cardio, body)
-5. Extras (Compare, CSV import/export) — todo
-6. Hardening (offline E2E, perf, Sentry, Lighthouse, README deploy guide) — todo
+5. Extras (Compare, CSV import/export) — done
+6. Hardening (offline E2E, perf, Sentry, Lighthouse, README deploy guide) — done (117 unit, 12 rules,
+   14 E2E; Lighthouse /login mobile: perf 92–98, a11y 100, best practices 100; SEO low by design — noindex)
 
 <!-- BEGIN:nextjs-agent-rules -->
 

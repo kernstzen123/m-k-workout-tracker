@@ -5,7 +5,7 @@ import {
   signOut,
   type Unsubscribe,
 } from "firebase/auth";
-import { getFirebaseAuth } from "@/lib/firebase/client";
+import { getFirebaseAuth } from "@/lib/firebase/auth";
 
 export interface AuthUser {
   uid: string;

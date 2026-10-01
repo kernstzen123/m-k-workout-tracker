@@ -1,7 +1,6 @@
 import { create } from "zustand";
-import { isFirebaseConfigured } from "@/lib/firebase/client";
+import { isFirebaseConfigured } from "@/lib/firebase/app";
 import { signOutUser, subscribeAuth, type AuthUser } from "@/lib/data/auth";
-import { loadProfile, updateProfile } from "@/lib/data/users";
 import { reportError } from "@/lib/monitoring";
 import type { UserProfile } from "@/lib/schemas/user";
 
@@ -37,7 +36,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const onDenied = () => {
         if (current === generation) set({ status: "denied", profile: null });
       };
-      loadProfile(user.uid, user.email, onDenied)
+      // Profiles live in Firestore — loaded on demand so the login screen stays Firestore-free.
+      import("@/lib/data/users")
+        .then(({ loadProfile }) => loadProfile(user.uid, user.email, onDenied))
         .then((result) => {
           if (current !== generation) return;
           if (result.status === "denied") set({ status: "denied", profile: null });
@@ -53,7 +54,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   saveProfile: (profile) => {
     const { user } = get();
     if (!user) return;
-    updateProfile(user.uid, profile);
+    void import("@/lib/data/users").then(({ updateProfile }) => updateProfile(user.uid, profile));
     set({ profile });
   },
 
