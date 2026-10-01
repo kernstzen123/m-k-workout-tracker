@@ -98,30 +98,34 @@ async function getDocsCacheFirst(q: Query): Promise<QuerySnapshot> {
   return getDocs(q);
 }
 
-/** The user's unfinished workout, if any (for crash/close recovery). */
-export async function findDraftSession(uid: string): Promise<Session | null> {
-  const q = query(
-    sessionsCol(uid),
-    where("status", "==", "draft"),
-    orderBy("startedAt", "desc"),
-    limit(1),
-  );
-  const snap = await getDocsCacheFirst(q);
-  const d = snap.docs[0];
-  return d ? parseDoc(sessionDocSchema, d.id, d.data(), "findDraftSession") : null;
+function parseSessions(snap: QuerySnapshot, where: string): Session[] {
+  const list: Session[] = [];
+  for (const d of snap.docs) {
+    const parsed = parseDoc(sessionDocSchema, d.id, d.data(), where);
+    if (parsed) list.push(parsed);
+  }
+  return list.sort((a, b) => b.startedAt - a.startedAt);
 }
 
-/** Most recent finished session (drives the "next day" suggestion). */
-export async function findLastDoneSession(uid: string): Promise<Session | null> {
-  const q = query(
-    sessionsCol(uid),
-    where("status", "==", "done"),
-    orderBy("startedAt", "desc"),
-    limit(1),
-  );
+/**
+ * The user's unfinished workout, if any (for crash/close recovery).
+ * Deliberately index-free (equality filter only, newest picked on the client): draft recovery
+ * must never depend on a composite index being deployed or finished building.
+ */
+export async function findDraftSession(uid: string): Promise<Session | null> {
+  const q = query(sessionsCol(uid), where("status", "==", "draft"), limit(5));
   const snap = await getDocsCacheFirst(q);
-  const d = snap.docs[0];
-  return d ? parseDoc(sessionDocSchema, d.id, d.data(), "findLastDoneSession") : null;
+  return parseSessions(snap, "findDraftSession")[0] ?? null;
+}
+
+/**
+ * Most recent finished session (drives the "next day" suggestion). Index-free: the newest few
+ * sessions by start time (single-field index), then the first finished one.
+ */
+export async function findLastDoneSession(uid: string): Promise<Session | null> {
+  const q = query(sessionsCol(uid), orderBy("startedAt", "desc"), limit(10));
+  const snap = await getDocsCacheFirst(q);
+  return parseSessions(snap, "findLastDoneSession").find((s) => s.status === "done") ?? null;
 }
 
 export function updateSessionExercises(
