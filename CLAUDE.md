@@ -58,6 +58,16 @@ dark by default, kg only. This file is the working summary of the spec — keep 
   deload −10% / variation), `detectPrs` (weight, reps-at-weight, e1RM, session volume; first session is a
   baseline, not a PR), `tallyMuscles` + `TARGET_BANDS` (weekly sets per muscle). Suggestions render as
   dismissible chips; "Apply" only fills un-logged rows.
+- **Zustand selectors must return stable values.** Never `?? []` / `.filter()` / `.map()` inside a
+  selector — that is a new snapshot every call and React loops forever ("getSnapshot should be cached").
+  Use `?? EMPTY` (`src/lib/cn.ts`) and derive lists with `useMemo` over the raw store value.
+- **Charts** follow the dataviz skill: series colors are the validated `--chart-1`/`--chart-2` tokens (one set
+  per theme, checked with `validate_palette.js`), read via `useChartColors()` because SVG attributes can't
+  resolve CSS variables. 2px lines, ringed ≥8px dots, ≤24px bars with 4px rounded ends, hairline solid grid,
+  one y-axis, a legend only for ≥2 series, sparse direct labels, crosshair/bar tooltips, and a "Show as table"
+  view on every chart (`components/charts/ChartFrame`).
+- **Firestore can't scan document ids descending** — for id-ordered collections like `weeklyStats` use an
+  ascending id range (`where(documentId(), ">=", …)`) and reverse on the client.
 - **Drag-and-drop** (`components/ui/SortableList`) always has a non-drag alternative (move up/down).
 - **No silent failures.** Every caught error goes to `reportError()` (`src/lib/monitoring`) and the
   user gets a toast where it matters.
@@ -152,7 +162,7 @@ users/{uid}/weeklyStats/{yyyy-Www}(added) sessions, muscles{muscle→{sets, volu
 1. Foundation — done (rules suite 12 tests, unit tests, 5 Playwright smoke tests)
 2. Core (program editor, live logging, rest timer, drafts, pre-fill) — done (50 unit, 12 rules, 9 E2E)
 3. Overload engine — done (suggestions, PRs on finish, stall detection, weekly muscle volume)
-4. Tracking (cardio, body, charts, history) — todo
+4. Tracking (cardio, body, charts, history) — done (history + detail, progress charts, muscle bands, consistency, cardio, body)
 5. Extras (Compare, CSV import/export) — todo
 6. Hardening (offline E2E, perf, Sentry, Lighthouse, README deploy guide) — todo
 

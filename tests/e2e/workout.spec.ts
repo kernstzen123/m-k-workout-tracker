@@ -89,6 +89,42 @@ test.describe("live workout logging", () => {
     await finish2.getByRole("button", { name: "Save workout" }).click();
     await expect(page).toHaveURL("/");
     await expect(page.getByText(/new PR/)).toBeVisible();
+
+    // Home stats now count both workouts this week.
+    await expect(page.getByText("This week").locator("..")).toContainText("2");
+
+    // History lists the finished workouts; the detail shows the sets and the PR flag.
+    await page.getByRole("link", { name: "History" }).click();
+    const items = page.getByRole("link", { name: /Upper A/ });
+    await expect(items).toHaveCount(2);
+    await items.first().click();
+    await expect(page).toHaveURL(/\/history\/session\?id=/);
+    await expect(page.getByRole("heading", { name: "Upper A" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: /62\.5 kg × 6\s*PR/ })).toBeVisible();
+
+    // Search filters the history list.
+    await page.goto("/history");
+    await page.getByRole("searchbox", { name: "Search history" }).fill("felt good");
+    await expect(page.getByRole("link", { name: /Upper A/ })).toHaveCount(1);
+
+    // Progress: the bench trend chart has both sessions (table view) and the PR card.
+    await page.getByRole("link", { name: "Progress" }).click();
+    await page
+      .getByLabel("Exercise", { exact: true })
+      .selectOption({ label: "Barbell Bench Press" });
+    await page.getByText("Show as table").click();
+    await expect(page.getByRole("table").getByRole("row")).toHaveCount(3); // header + 2 sessions
+    await expect(page.getByText("Personal records")).toBeVisible();
+
+    // Muscles: this week's chest sets against the target band.
+    await page.getByRole("tab", { name: "Muscles" }).click();
+    const muscles = page.getByRole("figure").filter({ hasText: "Working sets per muscle" });
+    // Bench 2 sets + 1 set this week → chest 3 working sets (below the 10–20 band).
+    await expect(muscles.getByRole("listitem").filter({ hasText: "Chest" })).toContainText(
+      "3 / 10–20 sets",
+    );
+    await page.getByRole("tab", { name: "Consistency" }).click();
+    await expect(page.getByRole("figure").filter({ hasText: "Workouts per week" })).toBeVisible();
   });
 
   test("add, swap and reorder exercises mid-session; log the cardio finisher", async ({ page }) => {
