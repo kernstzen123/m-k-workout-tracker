@@ -51,7 +51,8 @@ export function summarize(
   };
 }
 
-export const HISTORY_LENGTH = 6;
+/** Kept per exercise in `lastSets` (~80 bytes each — years of training fit in one doc). */
+export const HISTORY_LENGTH = 400;
 
 /**
  * New `lastSets` doc after finishing a session: these sets become "last time", and the session's

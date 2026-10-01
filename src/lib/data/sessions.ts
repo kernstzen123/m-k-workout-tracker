@@ -8,10 +8,12 @@ import {
   onSnapshot,
   orderBy,
   query,
+  increment,
   setDoc,
   updateDoc,
   where,
   writeBatch,
+  type FieldValue,
   type Query,
   type QuerySnapshot,
   type Unsubscribe,
@@ -29,6 +31,9 @@ import {
   type SetDoc,
   type WorkoutSet,
 } from "@/lib/schemas/session";
+import type { MuscleTally } from "@/lib/overload/volume";
+import type { Muscle } from "@/lib/schemas/common";
+import { prDocSchema, type PrDoc } from "@/lib/schemas/stats";
 import { fireAndForget, parseDoc } from "./util";
 
 const sessionsCol = (uid: string) => collection(getDb(), "users", uid, "sessions");
@@ -152,21 +157,48 @@ export function deleteSet(uid: string, sessionId: string, setId: string): void {
   fireAndForget(deleteDoc(doc(setsCol(uid, sessionId), setId)), "deleteSet");
 }
 
-export interface FinishInput {
+export interface FinishWrite {
   uid: string;
   sessionId: string;
   session: SessionDoc;
   /** New `lastSets` docs keyed by exercise id. */
   lastSets: Record<string, LastSetsDoc>;
+  /** Updated personal records keyed by exercise id. */
+  prs: Record<string, PrDoc>;
+  prSetIds: string[];
+  weekId: string;
+  weekly: Partial<Record<Muscle, MuscleTally>>;
 }
 
-/** One atomic batch: the finished session plus its denormalised per-exercise docs. */
-export function finishSession({ uid, sessionId, session, lastSets }: FinishInput): void {
-  const batch = writeBatch(getDb());
+/**
+ * One atomic batch: the finished session, PR flags on its sets, and every denormalised doc
+ * (`lastSets`, `prs`, `weeklyStats`). Weekly stats use increments, so two devices never clobber
+ * each other's totals.
+ */
+export function finishSession(input: FinishWrite): void {
+  const { uid, sessionId, session, lastSets, prs, prSetIds, weekId, weekly } = input;
+  const db = getDb();
+  const batch = writeBatch(db);
   batch.set(sessionRef(uid, sessionId), sessionDocSchema.parse(session));
   for (const [exerciseId, data] of Object.entries(lastSets)) {
     batch.set(lastSetsRef(uid, exerciseId), lastSetsDocSchema.parse(data));
   }
+  for (const [exerciseId, data] of Object.entries(prs)) {
+    batch.set(doc(db, "users", uid, "prs", exerciseId), prDocSchema.parse(data));
+  }
+  for (const setId of prSetIds) {
+    batch.update(doc(setsCol(uid, sessionId), setId), { isPR: true });
+  }
+  const muscles: Record<string, { sets: FieldValue; volume: FieldValue }> = {};
+  for (const [muscle, t] of Object.entries(weekly) as Array<[Muscle, MuscleTally]>) {
+    if (!Number.isFinite(t.sets) || !Number.isFinite(t.volume)) continue;
+    muscles[muscle] = { sets: increment(t.sets), volume: increment(t.volume) };
+  }
+  batch.set(
+    doc(db, "users", uid, "weeklyStats", weekId),
+    { sessions: increment(1), muscles, updatedAt: Date.now() },
+    { merge: true },
+  );
   fireAndForget(batch.commit(), "finishSession", "Couldn't save the finished workout.");
 }
 

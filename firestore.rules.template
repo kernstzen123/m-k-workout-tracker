@@ -82,8 +82,8 @@ service cloud.firestore {
       return d.keys().hasAll(['date', 'dayId', 'programVersion', 'startedAt', 'durationSec',
                               'totalVolume', 'notes', 'status'])
         && d.keys().hasOnly(['date', 'dayId', 'dayName', 'programVersion', 'exercises', 'startedAt',
-                             'finishedAt', 'durationSec', 'totalVolume', 'notes', 'status',
-                             'updatedAt'])
+                             'finishedAt', 'durationSec', 'totalVolume', 'setCount', 'avgRestSec',
+                             'prCount', 'notes', 'status', 'updatedAt'])
         && isDay(d.date)
         && (d.dayId == null || str(d.dayId, 40))
         && optStr(d, 'dayName', 80)

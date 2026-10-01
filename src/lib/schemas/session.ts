@@ -25,6 +25,10 @@ export const sessionDocSchema = z.object({
   finishedAt: millis.nullable().optional(),
   durationSec: z.int().min(0).max(86_400),
   totalVolume: z.number().min(0).max(10_000_000),
+  /** Working sets (no warm-ups); written on finish. */
+  setCount: z.int().min(0).max(1000).optional(),
+  avgRestSec: z.int().min(0).max(86_400).nullable().optional(),
+  prCount: z.int().min(0).max(1000).optional(),
   notes: z.string().max(2000),
   status: z.enum(["draft", "done"]),
   updatedAt: millis.optional(),
@@ -76,7 +80,8 @@ export const lastSetsDocSchema = z.object({
   sessionId: z.string().min(1),
   date: dayString,
   sets: z.array(setSnapshotSchema).max(30),
-  history: z.array(sessionSummarySchema).max(6),
+  /** Per-session summaries, oldest first (stall detection + progress charts). */
+  history: z.array(sessionSummarySchema).max(400),
   updatedAt: millis,
 });
 export type LastSetsDoc = z.infer<typeof lastSetsDocSchema>;

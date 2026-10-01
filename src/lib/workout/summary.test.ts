@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { LastSetsDoc, SetSnapshot } from "@/lib/schemas/session";
-import { buildLastSets, summarize, topSet, totalVolume } from "./summary";
+import { HISTORY_LENGTH, buildLastSets, summarize, topSet, totalVolume } from "./summary";
 
 const s = (weightKg: number, reps: number, type: SetSnapshot["type"] = "working"): SetSnapshot => ({
   type,
@@ -38,13 +38,15 @@ describe("buildLastSets", () => {
     expect(doc.history).toEqual([summarize("s1", "2026-10-01", [s(60, 8)])]);
   });
 
-  it("keeps a rolling window of 6 and replaces a re-finished session", () => {
+  it("keeps a rolling window and replaces a re-finished session", () => {
     let doc: LastSetsDoc | null = null;
-    for (let i = 1; i <= 8; i++) doc = buildLastSets(doc, `s${i}`, "2026-10-01", [s(50 + i, 5)], i);
-    expect(doc!.history.map((h) => h.sessionId)).toEqual(["s3", "s4", "s5", "s6", "s7", "s8"]);
+    for (let i = 1; i <= HISTORY_LENGTH + 2; i++)
+      doc = buildLastSets(doc, `s${i}`, "2026-10-01", [s(50, 5)], i);
+    expect(doc!.history).toHaveLength(HISTORY_LENGTH);
+    expect(doc!.history[0]?.sessionId).toBe("s3");
 
-    doc = buildLastSets(doc, "s8", "2026-10-01", [s(70, 5)], 9);
-    expect(doc.history).toHaveLength(6);
+    doc = buildLastSets(doc, `s${HISTORY_LENGTH + 2}`, "2026-10-01", [s(70, 5)], 9);
+    expect(doc.history).toHaveLength(HISTORY_LENGTH);
     expect(doc.history.at(-1)?.topWeightKg).toBe(70);
   });
 
