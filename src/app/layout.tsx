@@ -50,7 +50,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className="min-h-dvh antialiased">
+      {/* Browser extensions (password managers, Grammarly…) often inject attributes on <body>. */}
+      <body className="min-h-dvh antialiased" suppressHydrationWarning>
         <PwaProvider>
           <AuthBoot />
           {children}

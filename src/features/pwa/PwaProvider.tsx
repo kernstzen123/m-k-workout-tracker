@@ -4,6 +4,7 @@ import { SerwistProvider, useSerwist } from "@serwist/turbopack/react";
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
+import { reportError } from "@/lib/monitoring";
 import { useInstallStore } from "./install";
 
 export function PwaProvider({ children }: { children: ReactNode }) {
@@ -14,11 +15,52 @@ export function PwaProvider({ children }: { children: ReactNode }) {
       // Never auto-reload when the connection returns — it would interrupt a workout.
       reloadOnOnline={false}
     >
+      <StaleWorkerCleanup />
       <InstallCapture />
       <UpdatePrompt />
       {children}
     </SerwistProvider>
   );
+}
+
+const OUR_WORKER = "/serwist/sw.js";
+const RELOAD_FLAG = "mk-sw-cleanup-reloaded";
+
+/**
+ * Removes service workers that would serve stale or foreign responses on this origin:
+ *  - in development, every worker (e.g. one left by an earlier `npm start` on the same port);
+ *  - in production, any worker that isn't ours (e.g. another project once served on this origin).
+ * Stale workers serve old cached HTML → hydration mismatches or failed chunk loads.
+ * If such a worker controlled this page, reload once so it's served fresh.
+ */
+function StaleWorkerCleanup() {
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const dev = process.env.NODE_ENV === "development";
+    void (async () => {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      let removed = false;
+      for (const reg of regs) {
+        const script = reg.active?.scriptURL ?? reg.waiting?.scriptURL ?? reg.installing?.scriptURL;
+        const ours = script ? new URL(script).pathname === OUR_WORKER : false;
+        if (dev || !ours) removed = (await reg.unregister()) || removed;
+      }
+      if (dev && "caches" in window) {
+        for (const key of await caches.keys()) await caches.delete(key);
+      }
+      let alreadyReloaded = false;
+      try {
+        alreadyReloaded = sessionStorage.getItem(RELOAD_FLAG) === "1";
+        sessionStorage.setItem(RELOAD_FLAG, removed ? "1" : "0");
+      } catch {
+        // Storage unavailable — skip the reload safeguard rather than risk a loop.
+        alreadyReloaded = true;
+      }
+      if (removed && navigator.serviceWorker.controller && !alreadyReloaded)
+        window.location.reload();
+    })().catch((error: unknown) => reportError(error, { where: "StaleWorkerCleanup" }));
+  }, []);
+  return null;
 }
 
 function InstallCapture() {
