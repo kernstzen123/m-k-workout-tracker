@@ -24,6 +24,10 @@
   --success: #8fd3a9;
   --warning: #e8c36a;
   --scrim: rgb(2 8 6 / 0.72);
+  /* Chart series (dataviz validator: lightness band, chroma, CVD + normal-vision separation, 3:1). */
+  --chart-1: #3da97b;
+  --chart-2: #ae5528;
+  --chart-grid: #23392f;
 }
 
 :root[data-theme="light"] {
@@ -44,6 +48,9 @@
   --success: #1e7044;
   --warning: #8a5a00;
   --scrim: rgb(12 26 20 / 0.55);
+  --chart-1: #006a45;
+  --chart-2: #ce6f33;
+  --chart-grid: #e6dccb;
 }
 
 @theme inline {
@@ -62,6 +69,9 @@
   --color-danger: var(--danger);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-grid: var(--chart-grid);
 
   /* Barlow (body) + Barlow Condensed (display, numbers) — self-hosted via next/font. */
   --font-sans: var(--font-barlow), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
