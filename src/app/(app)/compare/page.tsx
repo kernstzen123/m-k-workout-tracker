@@ -1,14 +1,8 @@
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/ComingSoon";
+import { CompareScreen } from "@/features/compare/CompareScreen";
 
 export const metadata: Metadata = { title: "Compare" };
 
 export default function Page() {
-  return (
-    <ComingSoon
-      title="Compare"
-      phase={5}
-      what="Our key lifts side by side (with an opt-out in Settings)."
-    />
-  );
+  return <CompareScreen />;
 }
