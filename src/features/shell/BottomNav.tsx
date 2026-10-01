@@ -14,7 +14,16 @@ const TABS: Array<{ href: string; label: string; icon: LucideIcon; match: string
     href: "/more",
     label: "More",
     icon: LayoutGrid,
-    match: ["/more", "/program", "/exercises", "/cardio", "/body", "/compare", "/settings"],
+    match: [
+      "/more",
+      "/program",
+      "/exercises",
+      "/cardio",
+      "/body",
+      "/compare",
+      "/settings",
+      "/data",
+    ],
   },
 ];
 

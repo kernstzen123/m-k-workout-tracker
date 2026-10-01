@@ -3,6 +3,7 @@ import {
   ChevronRight,
   ClipboardList,
   HeartPulse,
+  FileSpreadsheet,
   Ruler,
   Settings,
   Users,
@@ -22,6 +23,12 @@ const LINKS: Array<{ href: string; label: string; description: string; icon: Luc
   { href: "/cardio", label: "Cardio", description: "Log and weekly totals", icon: HeartPulse },
   { href: "/body", label: "Body", description: "Weight, body fat, tape", icon: Ruler },
   { href: "/compare", label: "Compare", description: "Our key lifts side by side", icon: Users },
+  {
+    href: "/data",
+    label: "Import & export",
+    description: "CSV backup and old logs",
+    icon: FileSpreadsheet,
+  },
   {
     href: "/settings",
     label: "Settings",

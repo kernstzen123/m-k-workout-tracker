@@ -80,7 +80,7 @@ export function EmptyState({
           {icon}
         </div>
       ) : null}
-      <p className="font-display text-xl font-semibold tracking-wide uppercase">{title}</p>
+      <h2 className="font-display text-xl font-semibold tracking-wide uppercase">{title}</h2>
       {children ? <div className="max-w-xs text-muted">{children}</div> : null}
     </div>
   );
