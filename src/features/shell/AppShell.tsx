@@ -3,14 +3,25 @@
 import { CloudOff } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { AuthGate } from "@/features/auth/AuthGate";
+import { useAuthStore } from "@/features/auth/store";
 import { useExercisesStore } from "@/features/exercises/store";
+import { useProgramStore } from "@/features/program/store";
 import { useOnline } from "@/features/pwa/useOnline";
+import { RestTimerBar, RestTimerEngine } from "@/features/rest-timer/RestTimer";
+import { useWorkoutStore } from "@/features/workout/store";
 import { BottomNav } from "./BottomNav";
 
 /** Starts the app-wide data listeners once the user is signed in. */
 function DataSync() {
+  const uid = useAuthStore((s) => s.user?.uid);
   const startExercises = useExercisesStore((s) => s.start);
+  const startProgram = useProgramStore((s) => s.start);
+  const initWorkout = useWorkoutStore((s) => s.init);
+
   useEffect(() => startExercises(), [startExercises]);
+  useEffect(() => (uid ? startProgram(uid) : undefined), [uid, startProgram]);
+  // Resumes an unfinished workout automatically (after a crash, reload or closed app).
+  useEffect(() => (uid ? initWorkout(uid) : undefined), [uid, initWorkout]);
   return null;
 }
 
@@ -32,10 +43,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <AuthGate>
       <DataSync />
+      <RestTimerEngine />
       <OfflineBanner />
       <main className="mx-auto max-w-lg px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))]">
         {children}
       </main>
+      <RestTimerBar />
       <BottomNav />
     </AuthGate>
   );
