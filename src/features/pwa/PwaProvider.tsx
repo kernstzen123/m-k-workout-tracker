@@ -5,6 +5,7 @@ import { RefreshCw } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
 import { reportError } from "@/lib/monitoring";
+import { shouldRemoveWorker } from "@/lib/pwa/staleWorkers";
 import { useInstallStore } from "./install";
 
 export function PwaProvider({ children }: { children: ReactNode }) {
@@ -23,7 +24,6 @@ export function PwaProvider({ children }: { children: ReactNode }) {
   );
 }
 
-const OUR_WORKER = "/serwist/sw.js";
 const RELOAD_FLAG = "mk-sw-cleanup-reloaded";
 
 /**
@@ -42,8 +42,7 @@ function StaleWorkerCleanup() {
       let removed = false;
       for (const reg of regs) {
         const script = reg.active?.scriptURL ?? reg.waiting?.scriptURL ?? reg.installing?.scriptURL;
-        const ours = script ? new URL(script).pathname === OUR_WORKER : false;
-        if (dev || !ours) removed = (await reg.unregister()) || removed;
+        if (shouldRemoveWorker(script, dev)) removed = (await reg.unregister()) || removed;
       }
       if (dev && "caches" in window) {
         for (const key of await caches.keys()) await caches.delete(key);
