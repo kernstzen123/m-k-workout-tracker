@@ -1,0 +1,208 @@
+rules_version = '2';
+
+// SOURCE TEMPLATE. `firestore.rules` is generated from this file by `npm run rules:build`
+// (real UIDs from ALLOWED_UIDS) or `npm run rules:build:test` (test UIDs). Edit this file only.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- identity ----------
+
+    function isAllowed() {
+      return request.auth != null && request.auth.uid in [/*__ALLOWED_UIDS__*/];
+    }
+
+    function isOwner(uid) {
+      return isAllowed() && request.auth.uid == uid;
+    }
+
+    // Partner may read compare data unless the owner opted out (missing profile/flag = shared).
+    function sharesCompare(uid) {
+      let path = /databases/$(database)/documents/users/$(uid);
+      return !exists(path) || get(path).data.get('shareCompare', true) == true;
+    }
+
+    function canReadCompareData(uid) {
+      return isOwner(uid) || (isAllowed() && sharesCompare(uid));
+    }
+
+    // ---------- field helpers ----------
+
+    function isNum(v) { return v is int || v is float; }
+    function numIn(v, lo, hi) { return isNum(v) && v >= lo && v <= hi; }
+    function intIn(v, lo, hi) { return v is int && v >= lo && v <= hi; }
+    function str(v, max) { return v is string && v.size() <= max; }
+    function nonEmptyStr(v, max) { return str(v, max) && v.size() > 0; }
+    function optNum(d, k, lo, hi) { return !(k in d) || d[k] == null || numIn(d[k], lo, hi); }
+    function optStr(d, k, max) { return !(k in d) || d[k] == null || str(d[k], max); }
+    function isDay(v) { return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
+    function isMillis(v) { return v is int && v > 0; }
+
+    // ---------- validators (Zod does full validation client-side; rules enforce shape) ----------
+
+    function validUser(d) {
+      return d.keys().hasAll(['name', 'defaultRestSec', 'createdAt'])
+        && d.keys().hasOnly(['name', 'defaultRestSec', 'shareCompare', 'createdAt'])
+        && nonEmptyStr(d.name, 50)
+        && intIn(d.defaultRestSec, 0, 900)
+        && (!('shareCompare' in d) || d.shareCompare is bool)
+        && isMillis(d.createdAt);
+    }
+
+    function validExercise(d) {
+      return d.keys().hasAll(['name', 'muscle', 'secondary', 'equipment', 'type', 'repMin',
+                              'repMax', 'restSec', 'incrementKg', 'archived', 'createdAt', 'updatedAt'])
+        && d.keys().hasOnly(['name', 'muscle', 'secondary', 'equipment', 'type', 'repMin',
+                             'repMax', 'restSec', 'incrementKg', 'archived', 'createdAt', 'updatedAt'])
+        && nonEmptyStr(d.name, 80)
+        && nonEmptyStr(d.muscle, 30)
+        && d.secondary is list && d.secondary.size() <= 6
+        && nonEmptyStr(d.equipment, 30)
+        && d.type in ['strength', 'cardio']
+        && intIn(d.repMin, 0, 100)
+        && intIn(d.repMax, 0, 100)
+        && d.repMin <= d.repMax
+        && intIn(d.restSec, 0, 900)
+        && numIn(d.incrementKg, 0, 50)
+        && d.archived is bool
+        && isMillis(d.createdAt)
+        && isMillis(d.updatedAt);
+    }
+
+    function validProgram(d) {
+      return d.keys().hasOnly(['name', 'days', 'version', 'updatedBy', 'updatedAt'])
+        && d.keys().hasAll(['name', 'days', 'version', 'updatedBy', 'updatedAt'])
+        && nonEmptyStr(d.name, 80)
+        && d.days is list && d.days.size() <= 7
+        && d.version is int
+        && d.updatedBy == request.auth.uid
+        && isMillis(d.updatedAt);
+    }
+
+    function validSession(d) {
+      return d.keys().hasAll(['date', 'dayId', 'programVersion', 'startedAt', 'durationSec',
+                              'totalVolume', 'notes', 'status'])
+        && d.keys().hasOnly(['date', 'dayId', 'dayName', 'programVersion', 'exercises', 'startedAt',
+                             'finishedAt', 'durationSec', 'totalVolume', 'notes', 'status',
+                             'updatedAt'])
+        && isDay(d.date)
+        && (d.dayId == null || str(d.dayId, 40))
+        && optStr(d, 'dayName', 80)
+        && (d.programVersion == null || d.programVersion is int)
+        && (!('exercises' in d) || (d.exercises is list && d.exercises.size() <= 40))
+        && isMillis(d.startedAt)
+        && (!('finishedAt' in d) || d.finishedAt == null || isMillis(d.finishedAt))
+        && intIn(d.durationSec, 0, 86400)
+        && numIn(d.totalVolume, 0, 10000000)
+        && str(d.notes, 2000)
+        && d.status in ['draft', 'done'];
+    }
+
+    function validSet(d) {
+      return d.keys().hasAll(['exerciseId', 'order', 'type', 'weightKg', 'reps'])
+        && d.keys().hasOnly(['exerciseId', 'order', 'type', 'weightKg', 'reps', 'rpe', 'restSec',
+                             'note', 'isPR', 'completedAt'])
+        && nonEmptyStr(d.exerciseId, 100)
+        && intIn(d.order, 0, 10000)
+        && d.type in ['warmup', 'working', 'drop', 'failure']
+        && numIn(d.weightKg, 0, 1000)
+        && intIn(d.reps, 0, 1000)
+        && optNum(d, 'rpe', 1, 10)
+        && optNum(d, 'restSec', 0, 86400)
+        && optStr(d, 'note', 500)
+        && (!('isPR' in d) || d.isPR is bool)
+        && (!('completedAt' in d) || d.completedAt == null || isMillis(d.completedAt));
+    }
+
+    function validCardio(d) {
+      return d.keys().hasAll(['date', 'type', 'durationMin'])
+        && d.keys().hasOnly(['date', 'type', 'durationMin', 'distanceKm', 'avgHr', 'intensity',
+                             'sessionId', 'createdAt'])
+        && isDay(d.date)
+        && nonEmptyStr(d.type, 40)
+        && numIn(d.durationMin, 0, 1440)
+        && optNum(d, 'distanceKm', 0, 1000)
+        && optNum(d, 'avgHr', 20, 250)
+        && (!('intensity' in d) || d.intensity == null || d.intensity in ['low', 'moderate', 'high'])
+        && optStr(d, 'sessionId', 100);
+    }
+
+    function validMeasurement(d) {
+      return d.keys().hasAll(['date'])
+        && d.keys().hasOnly(['date', 'weightKg', 'bodyFatPct', 'tape', 'createdAt'])
+        && isDay(d.date)
+        && optNum(d, 'weightKg', 0, 500)
+        && optNum(d, 'bodyFatPct', 0, 100)
+        && (!('tape' in d) || d.tape == null || d.tape is map);
+    }
+
+    // ---------- shared collections (both users read + write, never delete) ----------
+
+    match /exercises/{exerciseId} {
+      allow read: if isAllowed();
+      allow create, update: if isAllowed() && validExercise(request.resource.data);
+      allow delete: if false; // archive instead — history may reference it
+    }
+
+    match /program/{programId} {
+      allow read: if isAllowed();
+      allow create: if isAllowed() && validProgram(request.resource.data)
+        && request.resource.data.version == 1;
+      // Optimistic concurrency: every save must bump the version by exactly one.
+      allow update: if isAllowed() && validProgram(request.resource.data)
+        && request.resource.data.version == resource.data.version + 1;
+      allow delete: if false;
+    }
+
+    // ---------- private data ----------
+
+    match /users/{uid} {
+      allow read: if isAllowed();
+      allow create, update: if isOwner(uid) && validUser(request.resource.data);
+      allow delete: if false;
+
+      // Partner can read (never write) sessions and their sets.
+      match /sessions/{sessionId} {
+        allow read: if isAllowed();
+        allow create, update: if isOwner(uid) && validSession(request.resource.data);
+        allow delete: if isOwner(uid);
+
+        match /sets/{setId} {
+          allow read: if isAllowed();
+          allow create, update: if isOwner(uid) && validSet(request.resource.data);
+          allow delete: if isOwner(uid);
+        }
+      }
+
+      match /cardio/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validCardio(request.resource.data);
+      }
+
+      match /measurements/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && validMeasurement(request.resource.data);
+      }
+
+      // Denormalised aggregates (written in the "finish session" batch).
+      match /prs/{exerciseId} {
+        allow read: if canReadCompareData(uid);
+        allow write: if isOwner(uid) && request.resource.data is map;
+      }
+
+      match /lastSets/{exerciseId} {
+        allow read: if canReadCompareData(uid);
+        allow write: if isOwner(uid) && request.resource.data is map;
+      }
+
+      match /weeklyStats/{weekId} {
+        allow read: if canReadCompareData(uid);
+        allow write: if isOwner(uid) && request.resource.data is map;
+      }
+
+      // EXTENSION POINT: progress photos — add a `photos/{id}` match here (metadata only) once
+      // a storage backend is chosen. Firebase Storage is not used in v1.
+    }
+
+    // Everything else is denied by default.
+  }
+}
