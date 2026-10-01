@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/Toaster";
 import { AuthBoot } from "@/features/auth/AuthBoot";
 import { PwaProvider } from "@/features/pwa/PwaProvider";
+import { MonitoringBoot } from "@/features/shell/MonitoringBoot";
 import { themeInitScript } from "@/features/settings/themeScript";
 import "./globals.css";
 
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="min-h-dvh antialiased" suppressHydrationWarning>
         <PwaProvider>
           <AuthBoot />
+          <MonitoringBoot />
           {children}
           <Toaster />
         </PwaProvider>
