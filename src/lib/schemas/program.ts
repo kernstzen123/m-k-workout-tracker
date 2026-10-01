@@ -9,6 +9,8 @@ export const programItemSchema = z
     repMax: z.int().min(0).max(100),
     /** Items sharing a group letter within a day are performed as a superset. */
     supersetGroup: z.string().max(4).optional(),
+    /** Cardio items only: planned duration in minutes. */
+    durationMin: z.int().min(1).max(180).optional(),
   })
   .refine((i) => i.repMin <= i.repMax, {
     message: "Min reps must be ≤ max reps",
@@ -18,14 +20,14 @@ export type ProgramItem = z.infer<typeof programItemSchema>;
 
 export const programDaySchema = z.object({
   dayId: z.string().min(1).max(40),
-  name: z.string().trim().min(1).max(40),
+  name: z.string().trim().min(1, "Give the day a name").max(40),
   items: z.array(programItemSchema).max(30),
 });
 export type ProgramDay = z.infer<typeof programDaySchema>;
 
 export const programDocSchema = z.object({
   name: z.string().trim().min(1).max(80),
-  days: z.array(programDaySchema).max(7),
+  days: z.array(programDaySchema).min(1).max(7),
   version: z.int().min(1),
   updatedBy: z.string().min(1),
   updatedAt: millis,
@@ -34,3 +36,4 @@ export type ProgramDoc = z.infer<typeof programDocSchema>;
 export type Program = ProgramDoc & { id: string };
 
 export const PROGRAM_ID = "main";
+export const SUPERSET_GROUPS = ["A", "B", "C", "D"] as const;

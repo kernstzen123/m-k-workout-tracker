@@ -99,9 +99,10 @@ service cloud.firestore {
 
     function validSet(d) {
       return d.keys().hasAll(['exerciseId', 'order', 'type', 'weightKg', 'reps'])
-        && d.keys().hasOnly(['exerciseId', 'order', 'type', 'weightKg', 'reps', 'rpe', 'restSec',
-                             'note', 'isPR', 'completedAt'])
+        && d.keys().hasOnly(['exerciseId', 'slotKey', 'order', 'type', 'weightKg', 'reps', 'rpe',
+                             'restSec', 'note', 'isPR', 'completedAt'])
         && nonEmptyStr(d.exerciseId, 100)
+        && optStr(d, 'slotKey', 40)
         && intIn(d.order, 0, 10000)
         && d.type in ['warmup', 'working', 'drop', 'failure']
         && numIn(d.weightKg, 0, 1000)
