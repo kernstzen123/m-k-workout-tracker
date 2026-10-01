@@ -16,9 +16,11 @@ import type { SessionExercise, SetSnapshot, WorkoutSet } from "@/lib/schemas/ses
 import { formatClock } from "@/lib/timer";
 import { toast } from "@/lib/toast";
 import { prefillRow } from "@/lib/workout/prefill";
+import { suggest, type Suggestion } from "@/lib/overload/suggest";
 import { setsForSlot, toSnapshot } from "@/lib/workout/session";
 import { SetOptionsSheet, type SetOptionsTarget } from "./SetOptionsSheet";
 import { useWorkoutStore } from "./store";
+import { SuggestionChips } from "./SuggestionChips";
 
 const TYPE_LETTER: Record<SetType, string | null> = {
   warmup: "W",
@@ -54,7 +56,9 @@ export function SlotCard({
   const slots = useWorkoutStore((s) => s.session?.exercises ?? []);
   const allSets = useWorkoutStore((s) => s.sets);
   const last = useWorkoutStore((s) => s.lastSets[slot.exerciseId]);
-  const { completeSet, updateSet, removeSet, updateSlot } = useWorkoutStore.getState();
+  const dismissed = useWorkoutStore((s) => s.dismissed[slot.key]);
+  const { completeSet, updateSet, removeSet, updateSlot, dismissSuggestion } =
+    useWorkoutStore.getState();
   const startTimer = useRestTimerStore((s) => s.start);
 
   const [edits, setEdits] = useState<Record<number, RowEdit>>({});
@@ -69,6 +73,42 @@ export function SlotCard({
   const rowCount = Math.max(slot.targetSets, done.length);
   const restSec = slot.restSec ?? exercise?.restSec ?? defaultRest;
   const lastSets = last?.sets ?? null;
+
+  const suggestions: Suggestion[] = last
+    ? suggest({
+        lastSets: last.sets,
+        repMin: slot.repMin,
+        repMax: slot.repMax,
+        incrementKg: exercise?.incrementKg ?? 0,
+        history: last.history,
+      }).filter((sg) => !dismissed?.includes(sg.kind))
+    : [];
+
+  /** Fill not-yet-logged rows from a suggestion (user-initiated; never automatic). */
+  function applySuggestion(sg: Suggestion) {
+    const pending = Array.from({ length: rowCount }, (_, i) => i).filter((i) => i >= done.length);
+    setEdits((all) => {
+      const next = { ...all };
+      for (const i of pending) {
+        if (pendingValues(i).type !== "working") continue;
+        if (sg.kind === "increase-weight") {
+          next[i] = { ...next[i], weight: String(sg.weightKg), reps: String(sg.reps) };
+        } else if (sg.kind === "repeat" || sg.kind === "deload") {
+          next[i] = { ...next[i], weight: String(sg.weightKg) };
+        }
+      }
+      if (sg.kind === "add-rep" && sg.setIndex >= done.length) {
+        next[sg.setIndex] = {
+          ...next[sg.setIndex],
+          weight: String(sg.weightKg),
+          reps: String(sg.reps),
+        };
+      }
+      return next;
+    });
+    dismissSuggestion(slot.key, sg.kind);
+    toast.info("Suggestion applied to the remaining sets — adjust anything before you log it.");
+  }
 
   function pendingValues(index: number) {
     const pre = prefillRow(index, doneSnapshots, lastSets, slot.repMin);
@@ -174,6 +214,12 @@ export function SlotCard({
       ) : (
         <div className="mb-2" />
       )}
+
+      <SuggestionChips
+        suggestions={suggestions}
+        onApply={applySuggestion}
+        onDismiss={(sg) => dismissSuggestion(slot.key, sg.kind)}
+      />
 
       <div role="table" aria-label={`${name} sets`} className="flex flex-col gap-1.5">
         <div

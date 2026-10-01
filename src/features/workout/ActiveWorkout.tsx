@@ -53,6 +53,10 @@ export function ActiveWorkout({ session }: { session: Session }) {
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   const slots = session.exercises ?? [];
+  const exerciseInfo = (id: string) => {
+    const e = byId.get(id);
+    return e ? { muscle: e.muscle, secondary: e.secondary } : undefined;
+  };
   const nameOf = (slot: SessionExercise | undefined) =>
     slot ? (byId.get(slot.exerciseId)?.name ?? slot.exerciseId) : "";
   const menuIndex = slots.findIndex((s) => s.key === menuSlot);
@@ -205,6 +209,7 @@ export function ActiveWorkout({ session }: { session: Session }) {
           session={session}
           sets={sets}
           cardio={cardio}
+          exerciseInfo={exerciseInfo}
           onClose={() => setFinishing(false)}
           onDiscard={() => {
             setFinishing(false);
@@ -215,8 +220,13 @@ export function ActiveWorkout({ session }: { session: Session }) {
           onFinish={(notes) => {
             setFinishing(false);
             clearTimer();
-            finish(notes);
-            toast.success("Workout saved. Nice work!");
+            const result = finish(notes, exerciseInfo);
+            const prs = result?.prHits.length ?? 0;
+            toast.success(
+              prs > 0
+                ? `Workout saved — ${prs} new PR${prs === 1 ? "" : "s"}!`
+                : "Workout saved. Nice work!",
+            );
             router.push("/");
           }}
         />

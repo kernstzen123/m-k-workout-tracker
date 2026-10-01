@@ -28,12 +28,16 @@ import type {
 import type { CardioEntry } from "@/lib/schemas/tracking";
 import { actualRestSec } from "@/lib/timer";
 import { toast } from "@/lib/toast";
+import { getPrs } from "@/lib/data/prs";
+import type { PrDoc } from "@/lib/schemas/stats";
 import {
   buildFinish,
   newSlotKey,
   restsAfterSet,
   setsForSlot,
   slotsFromDay,
+  type FinishInput,
+  type FinishPayload,
 } from "@/lib/workout/session";
 
 export interface CompleteSetInput {
@@ -54,6 +58,11 @@ interface WorkoutState {
   cardio: CardioEntry[];
   /** Last session per exercise: undefined = loading, null = never done. */
   lastSets: Record<string, LastSetsDoc | null | undefined>;
+  /** Personal records per exercise: undefined = loading, null = none yet. */
+  prs: Record<string, PrDoc | null | undefined>;
+  /** Suggestion chips dismissed in this workout (slot key → suggestion kinds). */
+  dismissed: Record<string, string[]>;
+  dismissSuggestion: (slotKey: string, kind: string) => void;
 
   init: (uid: string) => () => void;
   start: (input: { day: ProgramDay | null; programVersion: number | null }) => void;
@@ -70,7 +79,7 @@ interface WorkoutState {
   logCardio: (input: { type: string; durationMin: number }) => void;
   undoCardio: (entryId: string) => void;
 
-  finish: (notes: string) => void;
+  finish: (notes: string, exerciseInfo: FinishInput["exerciseInfo"]) => FinishPayload | null;
   discard: () => void;
 }
 
@@ -98,9 +107,18 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => {
   }
 
   function loadLastSets(exerciseIds: string[]) {
-    const { uid, lastSets } = get();
+    const { uid, lastSets, prs } = get();
     if (!uid) return;
     for (const id of exerciseIds) {
+      if (!(id in prs)) {
+        set((s) => ({ prs: { ...s.prs, [id]: undefined } }));
+        getPrs(uid, id)
+          .then((doc) => set((s) => ({ prs: { ...s.prs, [id]: doc } })))
+          .catch((error: unknown) => {
+            reportError(error, { where: "getPrs", id });
+            set((s) => ({ prs: { ...s.prs, [id]: null } }));
+          });
+      }
       if (id in lastSets) continue;
       set((s) => ({ lastSets: { ...s.lastSets, [id]: undefined } }));
       getLastSets(uid, id)
@@ -157,9 +175,16 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => {
     status: "idle",
     ...EMPTY,
     lastSets: {},
+    prs: {},
+    dismissed: {},
+
+    dismissSuggestion: (slotKey, kind) =>
+      set((s) => ({
+        dismissed: { ...s.dismissed, [slotKey]: [...(s.dismissed[slotKey] ?? []), kind] },
+      })),
 
     init: (uid) => {
-      set({ uid, status: "checking", lastSets: {} });
+      set({ uid, status: "checking", lastSets: {}, prs: {} });
       let cancelled = false;
       findDraftSession(uid)
         .then((draft) => {
@@ -174,7 +199,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => {
       return () => {
         cancelled = true;
         detach();
-        set({ ...EMPTY, status: "idle", uid: null, lastSets: {} });
+        set({ ...EMPTY, status: "idle", uid: null, lastSets: {}, prs: {} });
       };
     },
 
@@ -290,19 +315,31 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => {
       if (uid) deleteCardio(uid, entryId);
     },
 
-    finish: (notes) => {
-      const { uid, sessionId, session, sets, lastSets } = get();
-      if (!uid || !sessionId || !session) return;
+    finish: (notes, exerciseInfo) => {
+      const { uid, sessionId, session, sets, lastSets, prs } = get();
+      if (!uid || !sessionId || !session) return null;
       const { id: _id, ...doc } = session;
-      const payload = buildFinish(sessionId, doc, sets, lastSets, notes, Date.now());
+      const payload = buildFinish({
+        sessionId,
+        session: doc,
+        sets,
+        previousLastSets: lastSets,
+        previousPrs: prs,
+        exerciseInfo,
+        notes,
+        now: Date.now(),
+      });
       finishSession({ uid, sessionId, ...payload });
       detach();
-      // The finished sets are now "last time" for the next workout.
+      // The finished sets are now "last time" (and the new records) for the next workout.
       set((s) => ({
         ...EMPTY,
         status: "none",
+        dismissed: {},
         lastSets: { ...s.lastSets, ...payload.lastSets },
+        prs: { ...s.prs, ...payload.prs },
       }));
+      return payload;
     },
 
     discard: () => {
@@ -315,7 +352,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => {
         cardio.map((c) => c.id),
       );
       detach();
-      set({ ...EMPTY, status: "none" });
+      set({ ...EMPTY, status: "none", dismissed: {} });
     },
   };
 });
